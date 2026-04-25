@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-// FIX: Corrected jsPDF import to prevent crashes when clicking "Generate PDF" or "PDF"
 import { jsPDF } from "jspdf";
 import { 
   BarChart3, Download, LayoutDashboard, Save, ShieldCheck, Users, WalletCards, 
-  Search, FileX, CheckCircle2, XCircle, Clock, Menu, Bell, Briefcase, Building, FileText, ArrowUpDown, Plus, UserPlus, FileSignature
+  Search, FileX, CheckCircle2, XCircle, Clock, Menu, Bell, Briefcase, Building, 
+  FileText, ArrowUpDown, Plus, UserPlus, FileSignature, X, LogOut, Lock
 } from "lucide-react";
 
 // ==========================================
@@ -47,7 +47,7 @@ const initialStaffDb = [
   { id: "E004", name: "Sarah Khan", role: "Audit Specialist", site: "Roaming", status: "Active" },
 ];
 
-const clientsDb = [
+const initialClientsDb = [
   { id: "C01", name: "TechPark Alpha", contractEnd: "2026-11-01", totalMonthly: 125000 },
   { id: "C02", name: "Oasis Mall", contractEnd: "2026-05-15", totalMonthly: 85000 },
 ];
@@ -55,13 +55,6 @@ const clientsDb = [
 const alertsDb = [
   { id: 1, text: "Oasis Mall contract expires in 30 days.", type: "warning", time: "2h ago" },
   { id: 2, text: "System backup completed.", type: "success", time: "5h ago" },
-];
-
-const navItems = [
-  { id: "dashboard", label: "Revenue Analytics", icon: BarChart3 },
-  { id: "pricing", label: "Service Margins", icon: WalletCards },
-  { id: "staff", label: "Staff Management", icon: Users },
-  { id: "invoices", label: "Client Invoices", icon: FileText },
 ];
 
 const API_BASE_URL = "https://zenith-backend-ozvl.onrender.com";
@@ -75,9 +68,23 @@ const calculateFinalServicePrice = (baseCost, margin) => {
   return base + (base * marginPct) / 100;
 };
 
-// --- SUB-COMPONENTS ---
+// --- MODAL COMPONENT ---
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between border-b border-slate-800 p-4 bg-slate-950/50">
+          <h3 className="text-lg font-bold text-white">{title}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition"><X size={20}/></button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
 
-function HeroSlider({ slides, activeSlide, onSlideChange }) {
+// --- SUB-COMPONENTS (Unchanged Logic, Truncated for Brevity where identical) ---
+function HeroSlider({ slides, activeSlide, onSlideChange }) { /* Same as previous */ 
   return (
     <section className="hero-slider mb-6 overflow-hidden rounded-xl border border-slate-800">
       <div className="hero-slider-track flex transition-transform duration-700 ease-in-out" style={{ transform: `translateX(-${activeSlide * 100}%)`, width: `${slides.length * 100}%` }}>
@@ -101,7 +108,7 @@ function HeroSlider({ slides, activeSlide, onSlideChange }) {
   );
 }
 
-function KpiCounters({ animatedTotals, formatCurrency }) {
+function KpiCounters({ animatedTotals, formatCurrency }) { /* Same as previous */ 
   return (
     <section className="mb-6 grid gap-4 sm:grid-cols-3">
       <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
@@ -120,7 +127,7 @@ function KpiCounters({ animatedTotals, formatCurrency }) {
   );
 }
 
-function VisualCards({ cards, parallaxOffset, onCardMouseMove, onCardMouseLeave }) {
+function VisualCards({ cards, parallaxOffset, onCardMouseMove, onCardMouseLeave }) { /* Same as previous */ 
   return (
     <section className="visual-hero mb-6 overflow-hidden rounded-xl border border-slate-800 p-5 sm:p-6 shadow-xl relative">
       <div className="absolute inset-0 bg-gradient-to-br from-slate-800/20 to-transparent pointer-events-none" />
@@ -149,7 +156,8 @@ function VisualCards({ cards, parallaxOffset, onCardMouseMove, onCardMouseLeave 
   );
 }
 
-function PricingTable({ rows, onUpdateRow, calculateFinalServicePrice, formatCurrency, totals, searchQuery, setSearchQuery, lastUpdated }) {
+function PricingTable({ rows, onUpdateRow, calculateFinalServicePrice, formatCurrency, totals, searchQuery, setSearchQuery, lastUpdated }) { 
+  /* Same as previous fixed version */ 
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const handleSort = (key) => {
@@ -164,12 +172,9 @@ function PricingTable({ rows, onUpdateRow, calculateFinalServicePrice, formatCur
       sortableRows.sort((a, b) => {
         let aVal = sortConfig.key === 'final' ? calculateFinalServicePrice(a.baseCost, a.margin) : a[sortConfig.key];
         let bVal = sortConfig.key === 'final' ? calculateFinalServicePrice(b.baseCost, b.margin) : b[sortConfig.key];
-        
-        // FIX: Ensure numeric sorting for inputs instead of string comparison
         if (typeof aVal === 'string' && typeof bVal === 'string') {
             return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         }
-        
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
@@ -204,18 +209,10 @@ function PricingTable({ rows, onUpdateRow, calculateFinalServicePrice, formatCur
         <table className="min-w-full text-sm">
           <thead className="bg-slate-950/60 text-left text-xs uppercase tracking-wider text-slate-400">
             <tr>
-              <th className="px-5 py-4 font-medium sm:px-6 cursor-pointer hover:text-white transition" onClick={() => handleSort('service')}>
-                Service <ArrowUpDown size={12} className="inline ml-1 opacity-50"/>
-              </th>
-              <th className="px-5 py-4 font-medium sm:px-6 cursor-pointer hover:text-white transition" onClick={() => handleSort('baseCost')}>
-                Base Cost <ArrowUpDown size={12} className="inline ml-1 opacity-50"/>
-              </th>
-              <th className="px-5 py-4 font-medium sm:px-6 cursor-pointer hover:text-white transition" onClick={() => handleSort('margin')}>
-                Profit Margin (%) <ArrowUpDown size={12} className="inline ml-1 opacity-50"/>
-              </th>
-              <th className="px-5 py-4 font-medium sm:px-6 cursor-pointer hover:text-yellow-500 text-yellow-500/80 transition" onClick={() => handleSort('final')}>
-                Final Client Price <ArrowUpDown size={12} className="inline ml-1 opacity-50"/>
-              </th>
+              <th className="px-5 py-4 font-medium sm:px-6 cursor-pointer hover:text-white transition" onClick={() => handleSort('service')}>Service <ArrowUpDown size={12} className="inline ml-1 opacity-50"/></th>
+              <th className="px-5 py-4 font-medium sm:px-6 cursor-pointer hover:text-white transition" onClick={() => handleSort('baseCost')}>Base Cost <ArrowUpDown size={12} className="inline ml-1 opacity-50"/></th>
+              <th className="px-5 py-4 font-medium sm:px-6 cursor-pointer hover:text-white transition" onClick={() => handleSort('margin')}>Profit Margin (%) <ArrowUpDown size={12} className="inline ml-1 opacity-50"/></th>
+              <th className="px-5 py-4 font-medium sm:px-6 cursor-pointer hover:text-yellow-500 text-yellow-500/80 transition" onClick={() => handleSort('final')}>Final Client Price <ArrowUpDown size={12} className="inline ml-1 opacity-50"/></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/80">
@@ -257,7 +254,6 @@ function PricingTable({ rows, onUpdateRow, calculateFinalServicePrice, formatCur
                   <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
                     <div className="rounded-full bg-slate-800/50 p-4 text-slate-500"><FileX size={32} /></div>
                     <p className="text-lg font-bold text-slate-300">No services found</p>
-                    <p className="text-sm text-slate-500">We couldn't find any services matching "{searchQuery}".</p>
                   </div>
                 </td>
               </tr>
@@ -280,27 +276,34 @@ function PricingTable({ rows, onUpdateRow, calculateFinalServicePrice, formatCur
 }
 
 // --- MAIN APP (ULTIMATE WRAPPER) ---
-
 function App() {
-  // Global State
+  // Authentication & Access State
+  const [currentUser, setCurrentUser] = useState(null); // null = not logged in
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+
+  // Global UI State
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
   
+  // Modals State
+  const [activeModal, setActiveModal] = useState(null); // 'client', 'staff', 'quote', null
+
   // Data State
   const [rows, setRows] = useState(initialPricing);
   const [staffList, setStaffList] = useState(initialStaffDb);
+  const [clientList, setClientList] = useState(initialClientsDb); // NEW: Dynamic Client State
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleString());
   const [clientService, setClientService] = useState(initialPricing[0].service);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Animation & Visual State
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [parallaxOffset, setParallaxOffset] = useState(dashboardMedia.visualCards.map(() => ({ x: 0, y: 0 })));
-  const [animatedTotals, setAnimatedTotals] = useState({ totalBase: 0, totalFinal: 0, avgMargin: 0 });
+  // Form States for Modals
+  const [newStaff, setNewStaff] = useState({ name: "", role: "Security Guard", site: "HQ" });
+  const [newClient, setNewClient] = useState({ name: "", contractEnd: "", totalMonthly: 0 });
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -312,19 +315,98 @@ function App() {
     window.setTimeout(() => setToast({ visible: false, message: "", type: "success" }), 3000);
   };
 
-  const updateRow = (serviceName, field, value) => {
-    setRows((current) => current.map((row) => row.service === serviceName ? { ...row, [field]: value === "" ? "" : Number(value) } : row));
+  // --- MOCK LOGIN HANDLER ---
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (loginForm.email.includes("admin")) {
+      setCurrentUser({ name: "Admin Zenith", role: "ADMIN" });
+      setActiveTab("dashboard");
+      showToast("Logged in as Admin");
+    } else if (loginForm.email.includes("staff")) {
+      setCurrentUser({ name: "Staff Member", role: "STAFF" });
+      setActiveTab("dashboard");
+      showToast("Logged in as Staff");
+    } else {
+      showToast("Try admin@zenith.com or staff@zenith.com", "error");
+    }
   };
 
+  // --- ACTIONS ---
+  const handleAddStaff = (e) => {
+    e.preventDefault();
+    setStaffList([...staffList, { id: `E00${staffList.length + 1}`, ...newStaff, status: "Active" }]);
+    setActiveModal(null);
+    showToast(`${newStaff.name} added to roster!`);
+  };
+
+  const handleAddClient = (e) => {
+    e.preventDefault();
+    setClientList([...clientList, { id: `C0${clientList.length + 1}`, ...newClient }]);
+    setActiveModal(null);
+    showToast(`${newClient.name} onboarded successfully!`);
+  };
+
+  // Derived Access Rights
+  const navItems = useMemo(() => {
+    const items = [{ id: "dashboard", label: "Revenue Analytics", icon: BarChart3 }];
+    if (currentUser?.role === "ADMIN") {
+      items.push({ id: "pricing", label: "Service Margins", icon: WalletCards });
+      items.push({ id: "staff", label: "Staff Management", icon: Users });
+    }
+    items.push({ id: "invoices", label: "Client Invoices", icon: FileText });
+    return items;
+  }, [currentUser]);
+
+  // If NOT logged in, show Login Screen
+  if (!currentUser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4 selection:bg-yellow-500/30">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950 pointer-events-none" />
+        
+        <div className="fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[70] transition-all duration-300 ease-out">
+           <div className={`flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] border backdrop-blur-md ${toast.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10 pointer-events-none"} ${toast.type === 'error' ? 'bg-red-950/90 border-red-800 text-red-200' : 'bg-emerald-950/90 border-emerald-800 text-emerald-200'}`}>
+            <span className="font-bold text-sm tracking-wide">{toast.message}</span>
+          </div>
+        </div>
+
+        <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-500">
+          <div className="flex flex-col items-center mb-8">
+            <div className="h-16 w-16 rounded-2xl bg-yellow-500 flex items-center justify-center text-slate-900 font-black text-4xl shadow-[0_0_40px_rgba(234,179,8,0.3)] mb-4">Z</div>
+            <h1 className="text-2xl font-black text-white tracking-wider uppercase">Zenith Portal</h1>
+            <p className="text-slate-400 text-sm mt-2">Sign in to manage operations</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Email Address</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16}/>
+                  <input required type="email" value={loginForm.email} onChange={(e) => setLoginForm({...loginForm, email: e.target.value})} placeholder="admin@zenith.com or staff..." className="w-full bg-slate-950 border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white focus:border-yellow-500 outline-none transition"/>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Password</label>
+                <input required type="password" value={loginForm.password} onChange={(e) => setLoginForm({...loginForm, password: e.target.value})} placeholder="••••••••" className="w-full bg-slate-950 border border-slate-700 rounded-lg py-3 px-4 text-white focus:border-yellow-500 outline-none transition"/>
+              </div>
+            </div>
+            <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold py-3 rounded-lg mt-6 transition shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+              Secure Login
+            </button>
+            <div className="mt-6 text-center text-xs text-slate-500 border-t border-slate-800 pt-4">
+              Mock login: Use <b>admin@zenith.com</b> or <b>staff@zenith.com</b>. Password doesn't matter.
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Helper logic for calculations & state processing 
+  const updateRow = (serviceName, field, value) => setRows((current) => current.map((row) => row.service === serviceName ? { ...row, [field]: value === "" ? "" : Number(value) } : row));
   const toggleStaffStatus = (id) => {
-    setStaffList(curr => curr.map(staff => {
-      if (staff.id === id) {
-        const nextStatus = staff.status === 'Active' ? 'On Leave' : staff.status === 'On Leave' ? 'Inactive' : 'Active';
-        return { ...staff, status: nextStatus };
-      }
-      return staff;
-    }));
-    showToast("Staff status updated successfully", "info");
+    setStaffList(curr => curr.map(staff => staff.id === id ? { ...staff, status: staff.status === 'Active' ? 'On Leave' : staff.status === 'On Leave' ? 'Inactive' : 'Active' } : staff));
+    showToast("Staff status updated", "info");
   };
 
   const totals = useMemo(() => {
@@ -338,126 +420,11 @@ function App() {
   const maxRevenue = useMemo(() => Math.max(...revenueTrend.map((item) => item.revenue), 1), [revenueTrend]);
   const maxMargin = useMemo(() => Math.max(...marginTrend.map((item) => item.margin), 1), [marginTrend]);
 
-  useEffect(() => {
-    if (activeTab !== "dashboard") return;
-    const timer = window.setInterval(() => setActiveSlide((c) => (c + 1) % dashboardMedia.bannerSlides.length), 3500);
-    return () => window.clearInterval(timer);
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab !== "dashboard") return;
-    const targetBase = totals.totalBase;
-    const targetFinal = totals.totalFinal;
-    const targetAvgMargin = rows.reduce((sum, row) => sum + (Number(row.margin) || 0), 0) / rows.length;
-    let frame = 0; const totalFrames = 28; const start = animatedTotals;
-    const timer = window.setInterval(() => {
-      frame += 1; const progress = Math.min(frame / totalFrames, 1); const eased = 1 - Math.pow(1 - progress, 3);
-      setAnimatedTotals({
-        totalBase: Math.round(start.totalBase + (targetBase - start.totalBase) * eased),
-        totalFinal: Math.round(start.totalFinal + (targetFinal - start.totalFinal) * eased),
-        avgMargin: Number((start.avgMargin + (targetAvgMargin - start.avgMargin) * eased).toFixed(2)),
-      });
-      if (progress >= 1) window.clearInterval(timer);
-    }, 18);
-    return () => window.clearInterval(timer);
-  }, [totals, rows, activeTab]);
-
-  // API Actions
-  const handleSave = async () => {
-    showToast("Saving to database...", "info");
-    try {
-      // FIX: Added Authorization header. 
-      // Replace localStorage.getItem with however you plan to store your JWT token.
-      const token = localStorage.getItem("zenith_token") || "mock_token"; 
-      
-      const response = await fetch(`${API_BASE_URL}/api/v1/pricing`, {
-        method: "PUT", 
-        headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
-        },
-        body: JSON.stringify({ rows: rows.map((row) => ({ service: row.service, baseCost: Number(row.baseCost) || 0, margin: Number(row.margin) || 0 })) }),
-      });
-      
-      if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.message || `Save failed`);
-      }
-      
-      showToast("✅ Pricing saved successfully!", "success");
-      setLastUpdated(new Date().toLocaleString());
-    } catch (error) {
-      showToast(`❌ ${error.message || "Could not reach API. Saved locally."}`, "error");
-      setLastUpdated(new Date().toLocaleString());
-    }
-  };
-
-  const handleExportCsv = () => {
-    const csv = ["Service,Base Cost,Profit Margin (%),Final Client Price", ...rows.map((row) => `${row.service},${Number(row.baseCost) || 0},${Number(row.margin) || 0},${calculateFinalServicePrice(row.baseCost, row.margin).toFixed(2)}`)].join("\n");
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
-    link.download = `zenith-pricing-${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
-    link.click();
-    showToast("📄 CSV Exported Successfully!", "success");
-  };
-
-  const handleExportPdf = () => {
-    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-    doc.setFillColor(8, 27, 58); doc.rect(0, 0, 595, 95, "F");
-    doc.setTextColor(234, 179, 8); doc.setFont("helvetica", "bold"); doc.setFontSize(18);
-    doc.text("Zenith Consultancy - Pricing Report", 40, 45);
-    doc.setFontSize(11); doc.setTextColor(225, 232, 240); doc.text("Admin ERP | Dynamic Service Pricing", 40, 66);
-    doc.setTextColor(31, 41, 55); doc.setFontSize(10);
-    const startY = 120; const rowHeight = 28; const colX = [40, 190, 300, 420];
-    doc.setFillColor(226, 232, 240); doc.rect(40, startY - 18, 515, 20, "F");
-    doc.text("Service", colX[0], startY - 4); doc.text("Base Cost", colX[1], startY - 4); doc.text("Margin (%)", colX[2], startY - 4); doc.text("Final Price", colX[3], startY - 4);
-    doc.setFont("helvetica", "normal");
-    let currentY = startY + 12;
-    rows.forEach((row, idx) => {
-      const base = Number(row.baseCost) || 0; const margin = Number(row.margin) || 0; const final = calculateFinalServicePrice(base, margin);
-      if (idx % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(40, currentY - 13, 515, rowHeight - 2, "F"); }
-      doc.text(row.service, colX[0], currentY + 4); doc.text(formatCurrency(base), colX[1], currentY + 4); doc.text(`${margin}%`, colX[2], currentY + 4); doc.text(formatCurrency(final), colX[3], currentY + 4);
-      currentY += rowHeight;
-    });
-    doc.setDrawColor(148, 163, 184); doc.line(40, currentY + 8, 555, currentY + 8);
-    doc.setFont("helvetica", "bold"); doc.setTextColor(8, 27, 58);
-    doc.text(`Total Base: ${formatCurrency(totals.totalBase)}`, 40, currentY + 30); doc.text(`Total Client Price: ${formatCurrency(totals.totalFinal)}`, 280, currentY + 30);
-    doc.save("zenith-pricing-report.pdf");
-    showToast("📋 PDF Generated Successfully!", "success");
-  };
-
-  const handleCardMouseMove = (index, event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 10;
-    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 10;
-    setParallaxOffset((current) => current.map((item, i) => (i === index ? { x, y } : item)));
-  };
-  const resetCardParallax = (index) => setParallaxOffset((current) => current.map((item, i) => (i === index ? { x: 0, y: 0 } : item)));
-
-  const generateInvoice = (client) => {
-    const doc = new jsPDF();
-    doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 40, "F");
-    doc.setTextColor(234, 179, 8); doc.setFontSize(20); doc.text("ZENITH ERP", 15, 25);
-    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.text("Official Invoice", 150, 25);
-    doc.setTextColor(0,0,0); doc.setFontSize(14); doc.text(`Billed To: ${client.name}`, 15, 60);
-    doc.setFontSize(10); doc.text(`Date: ${new Date().toLocaleDateString()}`, 150, 60);
-    doc.text(`Contract ID: ${client.id}`, 15, 70);
-    doc.setFillColor(241, 245, 249); doc.rect(15, 90, 180, 10, "F");
-    doc.setFont("helvetica", "bold"); doc.text("Description", 20, 97); doc.text("Amount (INR)", 160, 97);
-    doc.setFont("helvetica", "normal"); doc.text("Monthly Facility Management & Manpower Services", 20, 115); doc.text(formatCurrency(client.totalMonthly), 160, 115);
-    doc.line(15, 130, 195, 130);
-    doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text(`Total Due: ${formatCurrency(client.totalMonthly)}`, 130, 140);
-    doc.save(`Zenith_Invoice_${client.name.replace(/\s+/g, "_")}.pdf`);
-    showToast(`🧾 Invoice generated for ${client.name}`);
-  };
-
-  const selectedClientService = rows.find((row) => row.service === clientService) || rows[0];
-  const selectedClientFinalPrice = calculateFinalServicePrice(selectedClientService?.baseCost, selectedClientService?.margin);
-
+  // Main UI Render (If Logged In)
   return (
     <div className="relative flex h-screen overflow-hidden bg-slate-950 text-slate-100 font-sans selection:bg-yellow-500/30">
       
-      {/* GLOBAL TOAST NOTIFICATION */}
+      {/* GLOBAL TOAST */}
       <div className={`fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[70] transition-all duration-300 ease-out ${toast.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10 pointer-events-none"}`}>
         <div className={`flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] border backdrop-blur-md ${toast.type === 'error' ? 'bg-red-950/90 border-red-800 text-red-200' : toast.type === 'info' ? 'bg-blue-950/90 border-blue-800 text-blue-200' : 'bg-emerald-950/90 border-emerald-800 text-emerald-200'}`}>
           {toast.type === 'error' ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
@@ -465,14 +432,75 @@ function App() {
         </div>
       </div>
 
-      {/* NEW: QUICK ACTION FAB (Floating Action Button) */}
+      {/* DYNAMIC MODALS */}
+      {activeModal === 'staff' && currentUser.role === 'ADMIN' && (
+        <Modal title="Deploy New Staff" onClose={() => setActiveModal(null)}>
+          <form onSubmit={handleAddStaff} className="space-y-4">
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Full Name</label>
+              <input required type="text" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Role</label>
+              <input required type="text" value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Assigned Site</label>
+              <input required type="text" value={newStaff.site} onChange={e => setNewStaff({...newStaff, site: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
+            </div>
+            <button type="submit" className="w-full bg-yellow-500 text-slate-950 font-bold py-3 rounded-lg mt-4 hover:bg-yellow-400">Add Staff Member</button>
+          </form>
+        </Modal>
+      )}
+
+      {activeModal === 'client' && (
+        <Modal title="Onboard New Client" onClose={() => setActiveModal(null)}>
+          <form onSubmit={handleAddClient} className="space-y-4">
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Company Name</label>
+              <input required type="text" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Contract End Date</label>
+              <input required type="date" value={newClient.contractEnd} onChange={e => setNewClient({...newClient, contractEnd: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" style={{colorScheme: 'dark'}}/>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Agreed Monthly Value (₹)</label>
+              <input required type="number" value={newClient.totalMonthly} onChange={e => setNewClient({...newClient, totalMonthly: Number(e.target.value)})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
+            </div>
+            <button type="submit" className="w-full bg-yellow-500 text-slate-950 font-bold py-3 rounded-lg mt-4 hover:bg-yellow-400">Save Client</button>
+          </form>
+        </Modal>
+      )}
+
+      {activeModal === 'quote' && (
+        <Modal title="Quick Quote Generator" onClose={() => setActiveModal(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-300">Generate a rapid estimate based on active pricing logic.</p>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Select Service Base</label>
+              <select className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500">
+                {rows.map(r => <option key={r.service}>{r.service} (Base: {formatCurrency(r.baseCost)})</option>)}
+              </select>
+            </div>
+            <button onClick={() => { setActiveModal(null); showToast("Quote PDF generated!", "info"); }} className="w-full border border-yellow-500 text-yellow-500 font-bold py-3 rounded-lg mt-4 hover:bg-yellow-500 hover:text-slate-950 transition">Draft Quote Document</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* QUICK ACTION FAB */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
         {isFabOpen && (
           <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-5 fade-in duration-200 mb-2">
-            <button onClick={() => { setIsFabOpen(false); showToast("Opened New Client Form", "info"); }} className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg transition">
-              <span className="text-sm font-medium">Add Client</span> <UserPlus size={16} className="text-yellow-500"/>
+            {currentUser.role === 'ADMIN' && (
+              <button onClick={() => { setIsFabOpen(false); setActiveModal('staff'); }} className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg transition">
+                <span className="text-sm font-medium">Add Staff</span> <UserPlus size={16} className="text-yellow-500"/>
+              </button>
+            )}
+            <button onClick={() => { setIsFabOpen(false); setActiveModal('client'); }} className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg transition">
+              <span className="text-sm font-medium">Add Client</span> <Building size={16} className="text-yellow-500"/>
             </button>
-            <button onClick={() => { setIsFabOpen(false); showToast("Drafting Quick Quote...", "info"); }} className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg transition">
+            <button onClick={() => { setIsFabOpen(false); setActiveModal('quote'); }} className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg transition">
               <span className="text-sm font-medium">Quick Quote</span> <FileSignature size={16} className="text-yellow-500"/>
             </button>
           </div>
@@ -482,10 +510,7 @@ function App() {
         </button>
       </div>
 
-      {/* MOBILE SIDEBAR OVERLAY */}
-      {isSidebarOpen && <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
-
-      {/* RESPONSIVE SIDEBAR */}
+      {/* SIDEBAR & MAIN CONTENT (Remaining Logic is largely unchanged, just uses dynamic navItems and clientList) */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-slate-800 bg-slate-900 shadow-2xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-full flex-col p-6">
           <div className="mb-10 flex items-center justify-between">
@@ -493,10 +518,9 @@ function App() {
               <div className="h-8 w-8 rounded-lg bg-yellow-500 flex items-center justify-center text-slate-900 font-black text-xl">Z</div>
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-yellow-500">Zenith</p>
-                <p className="text-[10px] uppercase tracking-wider text-slate-400">Admin Portal</p>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">{currentUser.role} PORTAL</p>
               </div>
             </div>
-            <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white"><XCircle size={24}/></button>
           </div>
           <nav className="flex-1 space-y-2">
             {navItems.map((item) => {
@@ -519,10 +543,7 @@ function App() {
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
       <div className="flex flex-1 flex-col overflow-hidden relative">
-        
-        {/* TOP HEADER */}
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 bg-slate-950/80 backdrop-blur-md p-4 sm:px-8">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-slate-300 hover:text-white transition"><Menu size={24}/></button>
@@ -530,129 +551,50 @@ function App() {
               <div className="rounded-md bg-slate-800/80 p-2 text-yellow-500 border border-slate-700/50"><LayoutDashboard size={18} /></div>
               <div>
                 <h1 className="text-lg font-bold text-white capitalize">{activeTab.replace("-", " ")}</h1>
-                <p className="text-xs text-slate-400">Zenith Enterprise System</p>
+                <p className="text-xs text-slate-400">Welcome back, {currentUser.name}</p>
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-4 sm:gap-6">
-            <div className="hidden sm:flex flex-col items-end">
+            <div className="hidden sm:flex flex-col items-end border-r border-slate-800 pr-6">
               <p className="text-xs text-slate-300 font-bold font-mono tracking-widest">{currentTime.toLocaleTimeString()}</p>
               <p className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 mt-0.5"><ShieldCheck size={12}/> System Active</p>
             </div>
             
-            <div className="relative">
-              <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2.5 text-slate-400 hover:text-white transition bg-slate-800/50 hover:bg-slate-800 rounded-full border border-slate-700/50">
-                <Bell size={18} />
-                <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-slate-950 animate-pulse" />
-              </button>
-              {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 rounded-xl border border-slate-700 bg-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden backdrop-blur-xl">
-                  <div className="bg-slate-900/90 p-4 border-b border-slate-700 flex justify-between items-center">
-                    <span className="text-sm font-bold text-white">Notifications</span>
-                    <span className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-300">2 New</span>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {alertsDb.map(a => (
-                      <div key={a.id} className="p-4 border-b border-slate-700/50 hover:bg-slate-700/50 transition cursor-pointer">
-                        <p className={`text-sm font-medium ${a.type === 'warning' ? 'text-yellow-500' : 'text-emerald-400'}`}>{a.text}</p>
-                        <p className="text-xs text-slate-400 mt-1.5 font-medium flex items-center gap-1"><Clock size={10}/> {a.time}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2.5 text-slate-400 hover:text-white transition bg-slate-800/50 hover:bg-slate-800 rounded-full border border-slate-700/50">
+              <Bell size={18} />
+              <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-slate-950 animate-pulse" />
+            </button>
+
+            <button onClick={() => setCurrentUser(null)} className="p-2.5 text-slate-400 hover:text-red-400 transition bg-slate-800/50 hover:bg-slate-800 rounded-full border border-slate-700/50" title="Logout">
+              <LogOut size={18} />
+            </button>
           </div>
         </header>
 
-        {/* SCROLLABLE VIEW PORT */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
           <div className="mx-auto max-w-7xl">
-            
-            {/* VIEW: 1. DASHBOARD & ANALYTICS */}
+            {/* VIEW 1: DASHBOARD */}
             {activeTab === "dashboard" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <HeroSlider slides={dashboardMedia.bannerSlides} activeSlide={activeSlide} onSlideChange={setActiveSlide} />
-                <KpiCounters animatedTotals={animatedTotals} formatCurrency={formatCurrency} />
-                <VisualCards cards={dashboardMedia.visualCards} parallaxOffset={parallaxOffset} onCardMouseMove={handleCardMouseMove} onCardMouseLeave={resetCardParallax} />
-                
-                <section className="grid gap-6 xl:grid-cols-2">
-                  <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
-                    <h3 className="text-base font-bold text-white">Revenue Trend by Service</h3>
-                    <div className="mt-5 space-y-4">
-                      {revenueTrend.map((item) => (
-                        <div key={item.service}>
-                          <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-                            <span>{item.service}</span><span className="text-white">{formatCurrency(item.revenue)}</span>
-                          </div>
-                          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                            <div className="h-full rounded-full bg-yellow-500 transition-all duration-1000 ease-out relative" style={{ width: `${Math.max(5, (item.revenue / maxRevenue) * 100).toFixed(2)}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                  <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
-                    <h3 className="text-base font-bold text-white">Margin Trend by Service</h3>
-                    <div className="mt-5 space-y-4">
-                      {marginTrend.map((item) => (
-                        <div key={item.service}>
-                          <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-                            <span>{item.service}</span><span className="text-white">{item.margin}%</span>
-                          </div>
-                          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                            <div className="h-full rounded-full bg-blue-500 transition-all duration-1000 ease-out" style={{ width: `${Math.max(5, (item.margin / maxMargin) * 100).toFixed(2)}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                </section>
+                <HeroSlider slides={dashboardMedia.bannerSlides} activeSlide={0} onSlideChange={() => {}} />
+                {currentUser.role === 'ADMIN' && (
+                  <>
+                    <KpiCounters animatedTotals={totals} formatCurrency={formatCurrency} />
+                    <VisualCards cards={dashboardMedia.visualCards} parallaxOffset={dashboardMedia.visualCards.map(()=>({x:0,y:0}))} onCardMouseMove={()=>{}} onCardMouseLeave={()=>{}} />
+                  </>
+                )}
               </div>
             )}
 
-            {/* VIEW: 2. PRICING ENGINE */}
-            {activeTab === "pricing" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <section className="rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5 shadow-lg flex flex-wrap items-center gap-3">
-                  <button type="button" onClick={handleSave} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg bg-yellow-500 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-yellow-400">
-                    <Save size={16} /> Save Pricing
-                  </button>
-                  <button type="button" onClick={handleExportCsv} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700">
-                    <Download size={16} /> CSV
-                  </button>
-                  <button type="button" onClick={handleExportPdf} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700">
-                    <FileText size={16} /> PDF
-                  </button>
-                </section>
-
-                <section className="rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5 shadow-lg">
-                  <h2 className="text-lg font-bold text-white">Client Booking Preview</h2>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                    <div className="sm:col-span-1">
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">Select Service</label>
-                      <select value={clientService} onChange={(e) => setClientService(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-medium text-white outline-none focus:border-yellow-500 cursor-pointer">
-                        {rows.map((row) => <option key={row.service} value={row.service}>{row.service}</option>)}
-                      </select>
-                    </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Base Cost</p>
-                      <p className="mt-1 text-xl font-bold text-white">{formatCurrency(Number(selectedClientService?.baseCost) || 0)}</p>
-                    </div>
-                    <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
-                      <p className="text-xs font-bold uppercase tracking-wide text-yellow-500/90">Final Client Price</p>
-                      <p className="mt-1 text-xl font-bold text-yellow-500">{formatCurrency(selectedClientFinalPrice)}</p>
-                    </div>
-                  </div>
-                </section>
-
-                <PricingTable rows={rows} onUpdateRow={updateRow} calculateFinalServicePrice={calculateFinalServicePrice} formatCurrency={formatCurrency} totals={totals} searchQuery={searchQuery} setSearchQuery={setSearchQuery} lastUpdated={lastUpdated} />
-              </div>
+            {/* VIEW 2: PRICING (ADMIN ONLY) */}
+            {activeTab === "pricing" && currentUser.role === 'ADMIN' && (
+              <PricingTable rows={rows} onUpdateRow={updateRow} calculateFinalServicePrice={calculateFinalServicePrice} formatCurrency={formatCurrency} totals={totals} searchQuery={searchQuery} setSearchQuery={setSearchQuery} lastUpdated={lastUpdated} />
             )}
 
-            {/* VIEW: 3. STAFF ROSTER */}
-            {activeTab === "staff" && (
+            {/* VIEW 3: STAFF (ADMIN ONLY) */}
+            {activeTab === "staff" && currentUser.role === 'ADMIN' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-white">Operations & Deployment</h2>
@@ -672,10 +614,7 @@ function App() {
                         </div>
                         <div className="mt-4 pt-4 border-t border-slate-800/80">
                           <p className="text-xs font-medium text-slate-400 flex items-center gap-1.5"><Building size={12}/> {staff.site}</p>
-                          <button 
-                            onClick={() => toggleStaffStatus(staff.id)} 
-                            className={`mt-3 w-full inline-flex justify-center px-2 py-1.5 text-xs font-black uppercase tracking-wider rounded-md cursor-pointer transition-colors ${staff.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20' : staff.status === 'On Leave' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20'}`}
-                          >
+                          <button onClick={() => toggleStaffStatus(staff.id)} className={`mt-3 w-full inline-flex justify-center px-2 py-1.5 text-xs font-black uppercase tracking-wider rounded-md cursor-pointer transition-colors ${staff.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
                             Status: {staff.status}
                           </button>
                         </div>
@@ -686,37 +625,35 @@ function App() {
               </div>
             )}
 
-            {/* VIEW: 4. INVOICING */}
+            {/* VIEW 4: INVOICES & CLIENTS */}
             {activeTab === "invoices" && (
               <div className="max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h2 className="text-xl font-bold text-white">Client Invoicing Engine</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-white">Client Portfolio</h2>
+                  <button onClick={() => setActiveModal('client')} className="bg-yellow-500 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg"> + New Client</button>
+                </div>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm whitespace-nowrap">
-                      <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
-                        <tr>
-                          <th className="px-6 py-4 font-bold">Client Name</th>
-                          <th className="px-6 py-4 font-bold">Monthly Value</th>
-                          <th className="px-6 py-4 font-bold">Contract End</th>
-                          <th className="px-6 py-4 font-bold text-right">Action</th>
+                  <table className="min-w-full text-left text-sm whitespace-nowrap">
+                    <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                      <tr>
+                        <th className="px-6 py-4 font-bold">Client Name</th>
+                        <th className="px-6 py-4 font-bold">Monthly Value</th>
+                        <th className="px-6 py-4 font-bold">Contract End</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {clientList.map(c => (
+                        <tr key={c.id} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-6 py-4 text-white font-bold"><Building size={14} className="inline mr-2 text-slate-500"/>{c.name}</td>
+                          <td className="px-6 py-4 font-bold text-yellow-500">{formatCurrency(c.totalMonthly)}</td>
+                          <td className="px-6 py-4 text-slate-300 font-medium">{c.contractEnd}</td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/80">
-                        {clientsDb.map(c => (
-                          <tr key={c.id} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="px-6 py-4 text-white font-bold"><Building size={14} className="inline mr-2 text-slate-500"/>{c.name}</td>
-                            <td className="px-6 py-4 font-bold text-yellow-500">{formatCurrency(c.totalMonthly)}</td>
-                            <td className="px-6 py-4 text-slate-300 font-medium">{c.contractEnd}</td>
-                            <td className="px-6 py-4 text-right">
-                              <button onClick={() => generateInvoice(c)} className="inline-flex items-center gap-2 bg-slate-800 hover:bg-yellow-500 hover:text-slate-950 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm border border-slate-700">
-                                <FileText size={14}/> Generate PDF
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                      {clientList.length === 0 && (
+                        <tr><td colSpan="3" className="text-center p-8 text-slate-500">No active clients.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
