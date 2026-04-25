@@ -2,22 +2,32 @@ import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import { 
   BarChart3, Download, LayoutDashboard, Save, ShieldCheck, Users, WalletCards, 
-  Search, FileX, CheckCircle2, XCircle, Clock, Menu, Bell, Briefcase, Building, FileText, ArrowUpDown
+  Search, FileX, CheckCircle2, XCircle, Clock, Menu, Bell, Briefcase, Building, FileText, ArrowUpDown, Plus, UserPlus, FileSignature
 } from "lucide-react";
 
-// --- MOCK DATABASES & MEDIA (IMAGES FIXED TO LIVE URLS) ---
+// ==========================================
+// 1. IMAGE IMPORTS (Fix for moving to 'src')
+// ==========================================
+// Ensure these filenames match exactly what is in your src/images folder!
+import slideSecurity from "./images/slide-security.svg";
+import slideSolar from "./images/slide-solar.svg";
+import slideHousekeeping from "./images/slide-housekeeping.svg";
+import slideManpower from "./images/slide-manpower.svg";
+import slideElectricalAudit from "./images/slide-electrical-audit.svg";
+
+// --- MOCK DATABASES & MEDIA ---
 const dashboardMedia = {
   bannerSlides: [
-    { title: "Security Operations", subtitle: "High-trust guarding and surveillance services", image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=1000" },
-    { title: "Solar Solutions", subtitle: "Sustainable energy infrastructure for enterprises", image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=1000" },
-    { title: "Housekeeping Excellence", subtitle: "Premium facility cleanliness and compliance", image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=1000" },
-    { title: "Skilled Manpower", subtitle: "Reliable workforce deployment on demand", image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1000" },
-    { title: "Electrical & Audit", subtitle: "Safety-first electrical support and governance audits", image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&q=80&w=1000" },
+    { title: "Security Operations", subtitle: "High-trust guarding and surveillance services", image: slideSecurity },
+    { title: "Solar Solutions", subtitle: "Sustainable energy infrastructure for enterprises", image: slideSolar },
+    { title: "Housekeeping Excellence", subtitle: "Premium facility cleanliness and compliance", image: slideHousekeeping },
+    { title: "Skilled Manpower", subtitle: "Reliable workforce deployment on demand", image: slideManpower },
+    { title: "Electrical & Audit", subtitle: "Safety-first electrical support and governance audits", image: slideElectricalAudit },
   ],
   visualCards: [
-    { title: "Solar Infrastructure", subtitle: "Clean energy operations", image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=600" },
-    { title: "Integrated Security", subtitle: "24/7 monitored safety", image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=600" },
-    { title: "Workforce Excellence", subtitle: "Skilled teams on demand", image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=600" },
+    { title: "Solar Infrastructure", subtitle: "Clean energy operations", image: slideSolar },
+    { title: "Integrated Security", subtitle: "24/7 monitored safety", image: slideSecurity },
+    { title: "Workforce Excellence", subtitle: "Skilled teams on demand", image: slideManpower },
   ],
 };
 
@@ -30,7 +40,7 @@ const initialPricing = [
   { service: "Audit", baseCost: 16000, margin: 17 },
 ];
 
-const staffDb = [
+const initialStaffDb = [
   { id: "E001", name: "Ramesh Kumar", role: "Security Supervisor", site: "TechPark Alpha", status: "Active" },
   { id: "E002", name: "Priya Singh", role: "Housekeeping Lead", site: "Oasis Mall", status: "Active" },
   { id: "E003", name: "Amit Patel", role: "Electrical Tech", site: "Zenith HQ", status: "On Leave" },
@@ -117,7 +127,6 @@ function VisualCards({ cards, parallaxOffset, onCardMouseMove, onCardMouseLeave 
       <div className="relative z-10 mb-5">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-yellow-500">Zenith Visual Showcase</p>
         <h2 className="mt-1 text-lg font-bold text-white sm:text-xl">Solar, Security, and Workforce Operations</h2>
-        <p className="mt-1 text-sm text-slate-400">Brand-focused visual cards with subtle motion effects.</p>
       </div>
       <div className="relative z-10 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {cards.map((card, index) => (
@@ -271,18 +280,27 @@ function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isFabOpen, setIsFabOpen] = useState(false); // NEW: Quick Action FAB state
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
   
   // Data State
   const [rows, setRows] = useState(initialPricing);
+  const [staffList, setStaffList] = useState(initialStaffDb); // NEW: Modifiable Staff State
   const [searchQuery, setSearchQuery] = useState("");
   const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleString());
   const [clientService, setClientService] = useState(initialPricing[0].service);
+  const [currentTime, setCurrentTime] = useState(new Date()); // NEW: Live Clock
 
   // Animation & Visual State
   const [activeSlide, setActiveSlide] = useState(0);
   const [parallaxOffset, setParallaxOffset] = useState(dashboardMedia.visualCards.map(() => ({ x: 0, y: 0 })));
   const [animatedTotals, setAnimatedTotals] = useState({ totalBase: 0, totalFinal: 0, avgMargin: 0 });
+
+  // NEW: Live Header Clock Effect
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const showToast = (message, type = "success") => {
     setToast({ visible: true, message, type });
@@ -291,6 +309,18 @@ function App() {
 
   const updateRow = (serviceName, field, value) => {
     setRows((current) => current.map((row) => row.service === serviceName ? { ...row, [field]: value === "" ? "" : Number(value) } : row));
+  };
+
+  // NEW: Interactive Staff Status Toggle
+  const toggleStaffStatus = (id) => {
+    setStaffList(curr => curr.map(staff => {
+      if (staff.id === id) {
+        const nextStatus = staff.status === 'Active' ? 'On Leave' : staff.status === 'On Leave' ? 'Inactive' : 'Active';
+        return { ...staff, status: nextStatus };
+      }
+      return staff;
+    }));
+    showToast("Staff status updated successfully", "info");
   };
 
   const totals = useMemo(() => {
@@ -342,7 +372,8 @@ function App() {
       showToast("✅ Pricing saved successfully!", "success");
       setLastUpdated(new Date().toLocaleString());
     } catch {
-      showToast("❌ Could not reach API.", "error");
+      showToast("❌ Could not reach API. Saved locally.", "error");
+      setLastUpdated(new Date().toLocaleString());
     }
   };
 
@@ -388,7 +419,6 @@ function App() {
   };
   const resetCardParallax = (index) => setParallaxOffset((current) => current.map((item, i) => (i === index ? { x: 0, y: 0 } : item)));
 
-  // Generate Official Invoice PDF
   const generateInvoice = (client) => {
     const doc = new jsPDF();
     doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 40, "F");
@@ -412,18 +442,33 @@ function App() {
   return (
     <div className="relative flex h-screen overflow-hidden bg-slate-950 text-slate-100 font-sans selection:bg-yellow-500/30">
       
-      {/* QoL: GLOBAL TOAST NOTIFICATION */}
-      <div className={`fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-out ${toast.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10 pointer-events-none"}`}>
+      {/* GLOBAL TOAST NOTIFICATION */}
+      <div className={`fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[70] transition-all duration-300 ease-out ${toast.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10 pointer-events-none"}`}>
         <div className={`flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] border backdrop-blur-md ${toast.type === 'error' ? 'bg-red-950/90 border-red-800 text-red-200' : toast.type === 'info' ? 'bg-blue-950/90 border-blue-800 text-blue-200' : 'bg-emerald-950/90 border-emerald-800 text-emerald-200'}`}>
           {toast.type === 'error' ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
           <span className="font-bold text-sm tracking-wide">{toast.message}</span>
         </div>
       </div>
 
+      {/* NEW: QUICK ACTION FAB (Floating Action Button) */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+        {isFabOpen && (
+          <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-5 fade-in duration-200 mb-2">
+            <button onClick={() => { setIsFabOpen(false); showToast("Opened New Client Form", "info"); }} className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg transition">
+              <span className="text-sm font-medium">Add Client</span> <UserPlus size={16} className="text-yellow-500"/>
+            </button>
+            <button onClick={() => { setIsFabOpen(false); showToast("Drafting Quick Quote...", "info"); }} className="flex items-center gap-3 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg transition">
+              <span className="text-sm font-medium">Quick Quote</span> <FileSignature size={16} className="text-yellow-500"/>
+            </button>
+          </div>
+        )}
+        <button onClick={() => setIsFabOpen(!isFabOpen)} className={`bg-yellow-500 hover:bg-yellow-400 text-slate-950 p-4 rounded-full shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-transform duration-300 ${isFabOpen ? "rotate-45" : ""}`}>
+          <Plus size={24} strokeWidth={3} />
+        </button>
+      </div>
+
       {/* MOBILE SIDEBAR OVERLAY */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
-      )}
+      {isSidebarOpen && <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
       {/* RESPONSIVE SIDEBAR */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-slate-800 bg-slate-900 shadow-2xl transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
@@ -476,17 +521,17 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4 sm:gap-6">
+            {/* NEW: LIVE CLOCK & STATUS */}
             <div className="hidden sm:flex flex-col items-end">
-              <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">System Status</p>
-              <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5"><ShieldCheck size={14}/> DB Linked</p>
+              <p className="text-xs text-slate-300 font-bold font-mono tracking-widest">{currentTime.toLocaleTimeString()}</p>
+              <p className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 mt-0.5"><ShieldCheck size={12}/> System Active</p>
             </div>
-            {/* NOTIFICATION BELL */}
+            
             <div className="relative">
               <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2.5 text-slate-400 hover:text-white transition bg-slate-800/50 hover:bg-slate-800 rounded-full border border-slate-700/50">
                 <Bell size={18} />
                 <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-slate-950 animate-pulse" />
               </button>
-              {/* Notification Dropdown */}
               {showNotifications && (
                 <div className="absolute right-0 mt-3 w-80 rounded-xl border border-slate-700 bg-slate-800 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden backdrop-blur-xl">
                   <div className="bg-slate-900/90 p-4 border-b border-slate-700 flex justify-between items-center">
@@ -521,7 +566,6 @@ function App() {
                 <section className="grid gap-6 xl:grid-cols-2">
                   <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
                     <h3 className="text-base font-bold text-white">Revenue Trend by Service</h3>
-                    <p className="mt-1 text-xs text-slate-400">Calculated from base cost + margin pricing.</p>
                     <div className="mt-5 space-y-4">
                       {revenueTrend.map((item) => (
                         <div key={item.service}>
@@ -529,9 +573,7 @@ function App() {
                             <span>{item.service}</span><span className="text-white">{formatCurrency(item.revenue)}</span>
                           </div>
                           <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                            <div className="h-full rounded-full bg-yellow-500 transition-all duration-1000 ease-out relative" style={{ width: `${Math.max(5, (item.revenue / maxRevenue) * 100).toFixed(2)}%` }}>
-                              <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]" />
-                            </div>
+                            <div className="h-full rounded-full bg-yellow-500 transition-all duration-1000 ease-out relative" style={{ width: `${Math.max(5, (item.revenue / maxRevenue) * 100).toFixed(2)}%` }} />
                           </div>
                         </div>
                       ))}
@@ -539,7 +581,6 @@ function App() {
                   </article>
                   <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
                     <h3 className="text-base font-bold text-white">Margin Trend by Service</h3>
-                    <p className="mt-1 text-xs text-slate-400">Current profit margin percentages.</p>
                     <div className="mt-5 space-y-4">
                       {marginTrend.map((item) => (
                         <div key={item.service}>
@@ -560,27 +601,24 @@ function App() {
             {/* VIEW: 2. PRICING ENGINE */}
             {activeTab === "pricing" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <section className="rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5 shadow-lg">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button type="button" onClick={handleSave} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg bg-yellow-500 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
-                      <Save size={16} /> Save Pricing to DB
-                    </button>
-                    <button type="button" onClick={handleExportCsv} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700">
-                      <Download size={16} /> CSV
-                    </button>
-                    <button type="button" onClick={handleExportPdf} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700">
-                      <FileText size={16} /> PDF
-                    </button>
-                  </div>
+                <section className="rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5 shadow-lg flex flex-wrap items-center gap-3">
+                  <button type="button" onClick={handleSave} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg bg-yellow-500 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-yellow-400">
+                    <Save size={16} /> Save Pricing
+                  </button>
+                  <button type="button" onClick={handleExportCsv} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700">
+                    <Download size={16} /> CSV
+                  </button>
+                  <button type="button" onClick={handleExportPdf} className="flex-1 sm:flex-none inline-flex justify-center items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700">
+                    <FileText size={16} /> PDF
+                  </button>
                 </section>
 
                 <section className="rounded-xl border border-slate-800 bg-slate-900 p-4 sm:p-5 shadow-lg">
                   <h2 className="text-lg font-bold text-white">Client Booking Preview</h2>
-                  <p className="mt-1 text-sm text-slate-400">Uses the live margin values and updates instantly.</p>
-                  <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
                     <div className="sm:col-span-1">
                       <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">Select Service</label>
-                      <select value={clientService} onChange={(e) => setClientService(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 appearance-none cursor-pointer">
+                      <select value={clientService} onChange={(e) => setClientService(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-medium text-white outline-none focus:border-yellow-500 cursor-pointer">
                         {rows.map((row) => <option key={row.service} value={row.service}>{row.service}</option>)}
                       </select>
                     </div>
@@ -588,11 +626,9 @@ function App() {
                       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Base Cost</p>
                       <p className="mt-1 text-xl font-bold text-white">{formatCurrency(Number(selectedClientService?.baseCost) || 0)}</p>
                     </div>
-                    <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 relative overflow-hidden">
-                      <div className="absolute right-0 top-0 w-16 h-16 bg-yellow-500/10 rounded-bl-full pointer-events-none"/>
+                    <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
                       <p className="text-xs font-bold uppercase tracking-wide text-yellow-500/90">Final Client Price</p>
                       <p className="mt-1 text-xl font-bold text-yellow-500">{formatCurrency(selectedClientFinalPrice)}</p>
-                      <p className="mt-1 text-xs font-medium text-slate-400">Margin Applied: <span className="text-white">{Number(selectedClientService?.margin) || 0}%</span></p>
                     </div>
                   </div>
                 </section>
@@ -606,23 +642,28 @@ function App() {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-white">Operations & Deployment</h2>
-                  <span className="text-xs font-bold bg-slate-800 text-slate-300 px-3 py-1 rounded-full">{staffDb.length} Active Staff</span>
+                  <span className="text-xs font-bold bg-slate-800 text-slate-300 px-3 py-1 rounded-full">{staffList.length} Total Staff</span>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                  {staffDb.map(staff => (
-                    <div key={staff.id} className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg hover:border-slate-700 transition group relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity"><Briefcase size={64}/></div>
-                      <div className="flex items-start gap-4 relative z-10">
-                        <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-yellow-500 font-bold">{staff.name.charAt(0)}</div>
-                        <div className="flex-1">
-                          <p className="text-white font-bold truncate">{staff.name}</p>
-                          <p className="text-xs font-medium text-yellow-500 mt-0.5">{staff.role}</p>
-                          <div className="mt-3 pt-3 border-t border-slate-800/80">
-                            <p className="text-xs font-medium text-slate-400 flex items-center gap-1.5 truncate"><Building size={12} className="text-slate-500"/> {staff.site}</p>
+                  {staffList.map(staff => (
+                    <div key={staff.id} className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-5"><Briefcase size={64}/></div>
+                      <div className="flex flex-col relative z-10">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-yellow-500 font-bold">{staff.name.charAt(0)}</div>
+                          <div>
+                            <p className="text-white font-bold truncate">{staff.name}</p>
+                            <p className="text-xs font-medium text-yellow-500 mt-0.5">{staff.role}</p>
                           </div>
-                          <div className="mt-3">
-                            <span className={`inline-flex px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-md ${staff.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>{staff.status}</span>
-                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-800/80">
+                          <p className="text-xs font-medium text-slate-400 flex items-center gap-1.5"><Building size={12}/> {staff.site}</p>
+                          <button 
+                            onClick={() => toggleStaffStatus(staff.id)} 
+                            className={`mt-3 w-full inline-flex justify-center px-2 py-1.5 text-xs font-black uppercase tracking-wider rounded-md cursor-pointer transition-colors ${staff.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20' : staff.status === 'On Leave' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20'}`}
+                          >
+                            Status: {staff.status}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -634,19 +675,13 @@ function App() {
             {/* VIEW: 4. INVOICING */}
             {activeTab === "invoices" && (
               <div className="max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Client Invoicing Engine</h2>
-                    <p className="text-sm text-slate-400 mt-1">Generate official PDF invoices for active contracts.</p>
-                  </div>
-                </div>
-                
+                <h2 className="text-xl font-bold text-white">Client Invoicing Engine</h2>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
                         <tr>
-                          <th className="px-6 py-4 font-bold">Client / Site Name</th>
+                          <th className="px-6 py-4 font-bold">Client Name</th>
                           <th className="px-6 py-4 font-bold">Monthly Value</th>
                           <th className="px-6 py-4 font-bold">Contract End</th>
                           <th className="px-6 py-4 font-bold text-right">Action</th>
@@ -659,7 +694,7 @@ function App() {
                             <td className="px-6 py-4 font-bold text-yellow-500">{formatCurrency(c.totalMonthly)}</td>
                             <td className="px-6 py-4 text-slate-300 font-medium">{c.contractEnd}</td>
                             <td className="px-6 py-4 text-right">
-                              <button onClick={() => generateInvoice(c)} className="inline-flex items-center gap-2 bg-slate-800 hover:bg-yellow-500 hover:text-slate-950 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm border border-slate-700 hover:border-transparent">
+                              <button onClick={() => generateInvoice(c)} className="inline-flex items-center gap-2 bg-slate-800 hover:bg-yellow-500 hover:text-slate-950 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm border border-slate-700">
                                 <FileText size={14}/> Generate PDF
                               </button>
                             </td>
