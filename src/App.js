@@ -1,33 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { jsPDF } from "jspdf";
 import { 
-  BarChart3, Download, LayoutDashboard, Save, ShieldCheck, Users, WalletCards, 
-  Search, FileX, CheckCircle2, XCircle, Clock, Menu, Bell, Briefcase, Building, 
-  FileText, ArrowUpDown, Plus, UserPlus, FileSignature, X, LogOut, Lock, Trash2, Power
+  BarChart3, LayoutDashboard, Save, ShieldCheck, Users, WalletCards, 
+  Search, CheckCircle2, XCircle, Menu, Bell, Briefcase, Building, 
+  FileText, Plus, UserPlus, FileSignature, X, LogOut, Lock, Trash2, Power
 } from "lucide-react";
 
-// Import extracted CSS
 import "./style.css";
 
-// ==========================================
-// 1. IMAGE IMPORTS
-// ==========================================
+// Ensure these exist in your src/images folder
 import slideSecurity from "./images/slide-security.svg";
 import slideSolar from "./images/slide-solar.svg";
-import slideHousekeeping from "./images/slide-housekeeping.svg";
-import slideManpower from "./images/slide-manpower.svg";
-import slideElectricalAudit from "./images/slide-electrical-audit.svg";
 
-// ==========================================
-// 2. MOCK DATABASE (Mapped to your SQL)
-// ==========================================
-const mockAuthDb = {
-  "admin@zenithconsultancy.com": { id: 1, name: "Rudra Admin", role: "ADMIN" },
-  "ops.admin@zenithconsultancy.com": { id: 2, name: "Aisha Operations Admin", role: "ADMIN" },
-  "nikhil.guard@zenithconsultancy.com": { id: 3, name: "Nikhil Guard", role: "STAFF" },
-  "priya.hk@zenithconsultancy.com": { id: 4, name: "Priya Housekeeper", role: "STAFF" },
-  "admin@apexindustries.com": { id: 7, name: "Apex Industries Client", role: "CLIENT" }
-};
+const API_BASE_URL = "https://zenith-backend-ozvl.onrender.com"; // Update to http://localhost:8080 for local testing
 
 const dashboardMedia = {
   bannerSlides: [
@@ -40,38 +25,17 @@ const dashboardMedia = {
   ],
 };
 
-const initialPricing = [
-  { service: "Housekeeping", baseCost: 18000, margin: 18 },
-  { service: "Security", baseCost: 28000, margin: 22 },
-  { service: "Solar", baseCost: 36000, margin: 25 },
-];
-
-const initialStaffDb = [
-  { id: 3, name: "Nikhil Guard", role: "Security Supervisor", site: "TechPark Alpha", status: "Active" },
-  { id: 4, name: "Priya Housekeeper", role: "Housekeeping Lead", site: "Oasis Mall", status: "Active" },
-  { id: 5, name: "Arun Electrician", role: "Electrical Tech", site: "Zenith HQ", status: "On Holiday" },
-];
-
-const initialClientsDb = [
-  { id: 7, name: "Apex Industries Client", contractEnd: "2026-11-01", totalMonthly: 125000 },
-  { id: 8, name: "Nova Retail Client", contractEnd: "2026-05-15", totalMonthly: 85000 },
-];
-
 const formatCurrency = (value) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
 const calculateFinalServicePrice = (baseCost, margin) => (Number(baseCost) || 0) + ((Number(baseCost) || 0) * (Number(margin) || 0)) / 100;
 
-// ==========================================
-// 3. UI COMPONENTS
-// ==========================================
+// --- MODAL WRAPPER ---
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
       <div className="w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden animate-zoom-in">
         <div className="flex items-center justify-between border-b border-slate-800 p-4 bg-slate-950/50">
           <h3 className="text-lg font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition">
-            <X size={20} />
-          </button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition"><X size={20} /></button>
         </div>
         <div className="p-6">{children}</div>
       </div>
@@ -79,32 +43,31 @@ function Modal({ title, onClose, children }) {
   );
 }
 
-// ==========================================
-// 4. MAIN APP ARCHITECTURE
-// ==========================================
-function App() {
-  // Authentication State
+// --- MAIN APP ---
+export default function App() {
+  // Global State
   const [currentUser, setCurrentUser] = useState(null); 
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-
-  // Global UI State
+  const [token, setToken] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isFabOpen, setIsFabOpen] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
   const [activeModal, setActiveModal] = useState(null); 
+  const [isFabOpen, setIsFabOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Data State
-  const [rows, setRows] = useState(initialPricing);
-  const [staffList, setStaffList] = useState(initialStaffDb);
-  const [clientList, setClientList] = useState(initialClientsDb);
+  // Database State
+  const [rows, setRows] = useState([]);
+  const [staffList, setStaffList] = useState([]);
+  const [clientList, setClientList] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Form States for Creation Modals
+  // Forms
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [newStaff, setNewStaff] = useState({ name: "", role: "", site: "" });
   const [newClient, setNewClient] = useState({ name: "", contractEnd: "", totalMonthly: 0 });
+  const [quoteBase, setQuoteBase] = useState("");
 
+  // Clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -112,70 +75,174 @@ function App() {
 
   const showToast = (message, type = "success") => {
     setToast({ visible: true, message, type });
-    window.setTimeout(() => setToast({ visible: false, message: "", type: "success" }), 3000);
+    setTimeout(() => setToast({ visible: false, message: "", type: "success" }), 3000);
   };
 
-  // --- LOGIN HANDLER ---
-  const handleLogin = (e) => {
+  // --- API HELPER ---
+  const apiFetch = async (endpoint, method = "GET", body = null) => {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers: { 
+        "Content-Type": "application/json", 
+        "Authorization": `Bearer ${token}` 
+      },
+      body: body ? JSON.stringify(body) : null
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "API request failed");
+    return data;
+  };
+
+  // --- ACTIONS ---
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const formattedEmail = loginForm.email.toLowerCase().trim();
-    const user = mockAuthDb[formattedEmail];
-    
-    if (user) {
-      setCurrentUser(user);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginForm.email.trim(), password: loginForm.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      
+      setToken(data.token);
+      setCurrentUser(data.user);
       setActiveTab("dashboard");
-      showToast(`Logged in as ${user.role}`, "success");
-    } else {
-      showToast("User not found in system.", "error");
+      showToast(`Welcome back, ${data.user.name}`, "success");
+    } catch (err) { 
+      showToast(err.message, "error"); 
     }
   };
 
-  // --- STAFF & CLIENT DATA ACTIONS ---
-  const handleAddStaff = (e) => {
+  const loadData = async () => {
+    try {
+      if (currentUser?.role !== "CLIENT") {
+        setRows(await apiFetch("/api/v1/pricing"));
+        setStaffList(await apiFetch("/api/v1/staff"));
+      }
+      setClientList(await apiFetch("/api/v1/clients"));
+      if (rows.length > 0) setQuoteBase(rows[0].service);
+    } catch (err) { 
+      showToast("Failed to sync database.", "error"); 
+    }
+  };
+
+  // Auto-fetch data upon successful login
+  useEffect(() => { 
+    if (token) loadData(); 
+  }, [token, currentUser]);
+
+  const handleSavePricing = async () => {
+    try {
+      await apiFetch("/api/v1/pricing", "PUT", { rows });
+      showToast("Pricing saved to database.", "success");
+    } catch (err) { 
+      showToast("Failed to save pricing.", "error"); 
+    }
+  };
+
+  const handleAddStaff = async (e) => {
     e.preventDefault();
-    setStaffList([...staffList, { id: Date.now(), ...newStaff, status: "Active" }]);
-    setActiveModal(null);
-    showToast(`${newStaff.name} added!`);
+    try {
+      const staff = await apiFetch("/api/v1/staff", "POST", newStaff);
+      setStaffList([staff, ...staffList]);
+      setActiveModal(null);
+      setNewStaff({ name: "", role: "", site: "" });
+      showToast(`${staff.name} added.`, "success");
+    } catch (err) { 
+      showToast("Error adding staff.", "error"); 
+    }
   };
 
-  const handleRemoveStaff = (id, name) => {
-    setStaffList(staffList.filter(s => s.id !== id));
-    showToast(`${name} removed from system.`, "info");
+  const handleRemoveStaff = async (id, name) => {
+    try {
+      await apiFetch(`/api/v1/staff/${id}`, "DELETE");
+      setStaffList(staffList.filter(s => s.id !== id));
+      showToast(`${name} removed from system.`, "info");
+    } catch (err) { 
+      showToast("Error removing staff.", "error"); 
+    }
   };
 
-  const handleAddClient = (e) => {
+  const handleStatusChange = async (id, status) => {
+    try {
+      await apiFetch(`/api/v1/staff/${id}/status`, "PUT", { status });
+      setStaffList(staffList.map(s => s.id === id ? { ...s, status } : s));
+      showToast("Status updated successfully.", "success");
+    } catch (err) { 
+      showToast("Error updating status.", "error"); 
+    }
+  };
+
+  const handleAddClient = async (e) => {
     e.preventDefault();
-    setClientList([...clientList, { id: Date.now(), ...newClient }]);
+    try {
+      const client = await apiFetch("/api/v1/clients", "POST", newClient);
+      setClientList([client, ...clientList]);
+      setActiveModal(null);
+      setNewClient({ name: "", contractEnd: "", totalMonthly: 0 });
+      showToast(`${client.name} onboarded.`, "success");
+    } catch (err) { 
+      showToast("Error adding client.", "error"); 
+    }
+  };
+
+  const generateQuotePdf = () => {
+    const serviceData = rows.find(r => r.service === quoteBase);
+    if (!serviceData) return;
+
+    const finalPrice = calculateFinalServicePrice(serviceData.baseCost, serviceData.margin);
+    
+    const doc = new jsPDF();
+    doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 40, "F");
+    doc.setTextColor(234, 179, 8); doc.setFontSize(20); doc.text("ZENITH CONSULTANCY", 15, 25);
+    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.text("Official Service Quote", 140, 25);
+    
+    doc.setTextColor(0,0,0); doc.setFontSize(14); doc.text(`Service: ${serviceData.service}`, 15, 60);
+    doc.setFontSize(10); doc.text(`Date: ${new Date().toLocaleDateString()}`, 150, 60);
+    
+    doc.setFillColor(241, 245, 249); doc.rect(15, 80, 180, 10, "F");
+    doc.setFont("helvetica", "bold"); doc.text("Description", 20, 87); doc.text("Estimated Cost", 160, 87);
+    
+    doc.setFont("helvetica", "normal"); 
+    doc.text(`Base deployment for ${serviceData.service} operations`, 20, 105); 
+    doc.text(formatCurrency(finalPrice), 160, 105);
+    
+    doc.line(15, 120, 195, 120);
+    doc.setFontSize(12); doc.setFont("helvetica", "bold"); 
+    doc.text(`Total Estimate: ${formatCurrency(finalPrice)}`, 130, 130);
+    
+    doc.save(`Zenith_Quote_${serviceData.service}.pdf`);
     setActiveModal(null);
-    showToast(`${newClient.name} onboarded!`);
+    showToast(`Quote PDF generated!`, "info");
   };
 
-  const handleSelfStatusChange = (newStatus) => {
-    setStaffList(curr => curr.map(staff => staff.id === currentUser.id ? { ...staff, status: newStatus } : staff));
-    showToast(`Your status updated to ${newStatus}`, "info");
-  };
-
-  // --- ROLE-BASED NAVIGATION ---
+  // --- NAVIGATION MAP ---
   const navItems = useMemo(() => {
     if (!currentUser) return [];
-    
     if (currentUser.role === "CLIENT") {
       return [
         { id: "dashboard", label: "Client Dashboard", icon: BarChart3 },
         { id: "invoices", label: "My Portfolio", icon: FileText }
       ];
     }
-
-    const items = [{ id: "dashboard", label: "Operations Dashboard", icon: BarChart3 }];
-    items.push({ id: "pricing", label: "Service Pricing", icon: WalletCards });
-    
+    const items = [
+      { id: "dashboard", label: "Operations Dashboard", icon: BarChart3 },
+      { id: "pricing", label: "Service Pricing", icon: WalletCards }
+    ];
     if (currentUser.role === "ADMIN") {
       items.push({ id: "staff", label: "Staff Management", icon: Users });
     }
-    
     items.push({ id: "invoices", label: "Client Management", icon: Building });
     return items;
   }, [currentUser]);
+
+  // Derived Calculations
+  const filteredPricing = rows.filter(r => r.service.toLowerCase().includes(searchQuery.toLowerCase()));
+  const totals = {
+    base: rows.reduce((s, r) => s + Number(r.baseCost), 0),
+    final: rows.reduce((s, r) => s + calculateFinalServicePrice(r.baseCost, r.margin), 0)
+  };
 
   // ==========================================
   // VIEW: LOGIN SCREEN
@@ -183,58 +250,29 @@ function App() {
   if (!currentUser) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
-        
-        {/* Toast Notification */}
         <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[70] transition-all duration-300 ${toast.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10"}`}>
            <div className={`px-5 py-3 rounded-full border shadow-xl ${toast.type === 'error' ? 'bg-red-950/90 border-red-800 text-red-200' : 'bg-emerald-950/90 border-emerald-800 text-emerald-200'}`}>
             <span className="font-bold text-sm">{toast.message}</span>
           </div>
         </div>
-
-        <div className="w-full max-w-md relative z-10 animate-zoom-in">
+        <div className="w-full max-w-md animate-zoom-in">
           <div className="flex flex-col items-center mb-8">
-            <div className="h-16 w-16 rounded-2xl bg-yellow-500 flex items-center justify-center text-slate-900 font-black text-4xl mb-4 shadow-[0_0_40px_rgba(234,179,8,0.3)]">Z</div>
-            <h1 className="text-2xl font-black text-white uppercase tracking-widest">Zenith Connect</h1>
+            <div className="h-16 w-16 rounded-2xl bg-yellow-500 flex items-center justify-center text-slate-900 font-black text-4xl mb-4">Z</div>
+            <h1 className="text-2xl font-black text-white tracking-widest uppercase">Zenith Connect</h1>
           </div>
-
-          <form onSubmit={handleLogin} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Work Email</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16}/>
-                  <input 
-                    required 
-                    type="email" 
-                    value={loginForm.email} 
-                    onChange={(e) => setLoginForm({...loginForm, email: e.target.value})} 
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white focus:border-yellow-500 outline-none"
-                    placeholder="e.g. admin@zenithconsultancy.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase text-slate-400 mb-1.5 block">Password</label>
-                <input 
-                  required 
-                  type="password" 
-                  value={loginForm.password} 
-                  onChange={(e) => setLoginForm({...loginForm, password: e.target.value})} 
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg py-3 px-4 text-white focus:border-yellow-500 outline-none"
-                  placeholder="••••••••"
-                />
+          <form onSubmit={handleLogin} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-400 mb-1 block">Work Email</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16}/>
+                <input required type="email" value={loginForm.email} onChange={e => setLoginForm({...loginForm, email: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg py-3 pl-10 pr-4 text-white focus:border-yellow-500 outline-none"/>
               </div>
             </div>
-            
-            <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold py-3 rounded-lg mt-6 transition">
-              Login to Portal
-            </button>
-            
-            <div className="mt-6 text-center text-xs text-slate-500 border-t border-slate-800 pt-4 flex flex-col gap-1">
-              <p><b>Admin:</b> admin@zenithconsultancy.com</p>
-              <p><b>Staff:</b> nikhil.guard@zenithconsultancy.com</p>
-              <p><b>Client:</b> admin@apexindustries.com</p>
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-400 mb-1 block">Password</label>
+              <input required type="password" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg py-3 px-4 text-white focus:border-yellow-500 outline-none"/>
             </div>
+            <button type="submit" className="w-full bg-yellow-500 text-slate-950 font-bold py-3 rounded-lg mt-4 hover:bg-yellow-400 transition">Secure Login</button>
           </form>
         </div>
       </div>
@@ -242,16 +280,16 @@ function App() {
   }
 
   // ==========================================
-  // VIEW: MAIN DASHBOARD LAYOUT
+  // VIEW: DASHBOARD & APP LAYOUT
   // ==========================================
   return (
     <div className="relative flex h-screen overflow-hidden bg-slate-950 text-slate-100 font-sans selection:bg-yellow-500/30">
       
       {/* GLOBAL TOAST */}
-      <div className={`fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[70] transition-all duration-300 ${toast.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10 pointer-events-none"}`}>
-        <div className="flex items-center gap-3 px-5 py-3 rounded-full bg-slate-800 border border-slate-700 text-white shadow-xl">
-          <CheckCircle2 size={18} className="text-emerald-400"/>
-          <span className="font-bold text-sm tracking-wide">{toast.message}</span>
+      <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[70] transition-all duration-300 ${toast.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10"}`}>
+        <div className="flex items-center gap-2 px-5 py-3 rounded-full bg-slate-800 border border-slate-700 text-white shadow-xl">
+          {toast.type === 'error' ? <XCircle size={16} className="text-red-400"/> : <CheckCircle2 size={16} className="text-emerald-400"/>}
+          <span className="font-bold text-sm">{toast.message}</span>
         </div>
       </div>
 
@@ -259,10 +297,10 @@ function App() {
       {activeModal === 'staff' && currentUser.role === 'ADMIN' && (
         <Modal title="Deploy New Staff" onClose={() => setActiveModal(null)}>
           <form onSubmit={handleAddStaff} className="space-y-4">
-            <input required placeholder="Full Name" type="text" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
-            <input required placeholder="Role (e.g. Guard)" type="text" value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
-            <input required placeholder="Assigned Site" type="text" value={newStaff.site} onChange={e => setNewStaff({...newStaff, site: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
-            <button type="submit" className="w-full bg-yellow-500 text-slate-950 font-bold py-3 rounded-lg hover:bg-yellow-400">Add Staff</button>
+            <input required placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" />
+            <input required placeholder="Role (e.g. Guard)" value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" />
+            <input required placeholder="Assigned Site" value={newStaff.site} onChange={e => setNewStaff({...newStaff, site: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" />
+            <button type="submit" className="w-full bg-yellow-500 text-slate-950 font-bold py-3 rounded-lg">Save Staff</button>
           </form>
         </Modal>
       )}
@@ -270,11 +308,26 @@ function App() {
       {activeModal === 'client' && (currentUser.role === 'ADMIN' || currentUser.role === 'STAFF') && (
         <Modal title="Onboard New Client" onClose={() => setActiveModal(null)}>
           <form onSubmit={handleAddClient} className="space-y-4">
-            <input required placeholder="Company Name" type="text" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
-            <input required type="date" value={newClient.contractEnd} onChange={e => setNewClient({...newClient, contractEnd: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" style={{colorScheme: 'dark'}}/>
-            <input required placeholder="Monthly Value (₹)" type="number" value={newClient.totalMonthly} onChange={e => setNewClient({...newClient, totalMonthly: Number(e.target.value)})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500" />
-            <button type="submit" className="w-full bg-yellow-500 text-slate-950 font-bold py-3 rounded-lg hover:bg-yellow-400">Save Client</button>
+            <input required placeholder="Company Name" value={newClient.name} onChange={e => setNewClient({...newClient, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" />
+            <input required type="date" value={newClient.contractEnd} onChange={e => setNewClient({...newClient, contractEnd: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" style={{colorScheme:'dark'}} />
+            <input required placeholder="Monthly Value (₹)" type="number" value={newClient.totalMonthly} onChange={e => setNewClient({...newClient, totalMonthly: Number(e.target.value)})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-yellow-500 outline-none" />
+            <button type="submit" className="w-full bg-yellow-500 text-slate-950 font-bold py-3 rounded-lg">Save Client</button>
           </form>
+        </Modal>
+      )}
+
+      {activeModal === 'quote' && (currentUser.role === 'ADMIN' || currentUser.role === 'STAFF') && (
+        <Modal title="Quick Quote Generator" onClose={() => setActiveModal(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-300">Generate a rapid estimate based on active pricing logic.</p>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">Select Service Base</label>
+              <select value={quoteBase} onChange={e => setQuoteBase(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white outline-none focus:border-yellow-500">
+                {rows.map(r => <option key={r.service} value={r.service}>{r.service} (Base: {formatCurrency(r.baseCost)})</option>)}
+              </select>
+            </div>
+            <button onClick={generateQuotePdf} className="w-full border border-yellow-500 text-yellow-500 font-bold py-3 rounded-lg mt-4 hover:bg-yellow-500 hover:text-slate-950 transition">Draft Quote Document</button>
+          </div>
         </Modal>
       )}
 
@@ -291,6 +344,9 @@ function App() {
               <button onClick={() => { setIsFabOpen(false); setActiveModal('client'); }} className="flex items-center gap-3 bg-slate-800 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg hover:bg-slate-700 transition">
                 <span className="text-sm font-medium">Add Client</span> <Building size={16} className="text-yellow-500"/>
               </button>
+              <button onClick={() => { setIsFabOpen(false); setActiveModal('quote'); }} className="flex items-center gap-3 bg-slate-800 text-white px-4 py-2 rounded-full border border-slate-700 shadow-lg hover:bg-slate-700 transition">
+                <span className="text-sm font-medium">Quick Quote</span> <FileSignature size={16} className="text-yellow-500"/>
+              </button>
             </div>
           )}
           <button onClick={() => setIsFabOpen(!isFabOpen)} className={`bg-yellow-500 text-slate-950 p-4 rounded-full shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-transform duration-300 ${isFabOpen ? "rotate-45" : ""}`}>
@@ -300,29 +356,25 @@ function App() {
       )}
 
       {/* SIDEBAR NAVIGATION */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-slate-800 bg-slate-900 transition-transform lg:static lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex h-full flex-col p-6">
-          <div className="mb-10 flex items-center gap-3">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-slate-800 bg-slate-900 transition-transform lg:static lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex flex-col h-full p-6">
+          <div className="flex items-center gap-3 mb-10">
             <div className="h-8 w-8 rounded-lg bg-yellow-500 flex items-center justify-center text-slate-900 font-black text-xl">Z</div>
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.2em] text-yellow-500">Zenith</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400">{currentUser.role} PORTAL</p>
+              <p className="text-sm font-black uppercase text-yellow-500 tracking-[0.2em]">Zenith</p>
+              <p className="text-[10px] uppercase text-slate-400">{currentUser.role} PORTAL</p>
             </div>
           </div>
           <nav className="flex-1 space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }}
-                  className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${isActive ? "bg-slate-800 text-yellow-500 ring-1 ring-yellow-500/40" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}
-                >
-                  <Icon size={18} className={isActive ? "text-yellow-500" : ""} /> {item.label}
-                </button>
-              );
-            })}
+            {navItems.map(item => (
+              <button 
+                key={item.id} 
+                onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }} 
+                className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm transition-all ${activeTab === item.id ? "bg-slate-800 text-yellow-500 ring-1 ring-yellow-500/40 shadow-lg translate-x-1" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}
+              >
+                <item.icon size={18} className={activeTab === item.id ? "text-yellow-500" : ""} /> {item.label}
+              </button>
+            ))}
           </nav>
         </div>
       </aside>
@@ -330,26 +382,31 @@ function App() {
       {/* MAIN CONTENT AREA */}
       <div className="flex flex-1 flex-col overflow-hidden relative">
         
-        {/* TOP HEADER */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 bg-slate-950/80 backdrop-blur-md p-4 sm:px-8">
+        {/* HEADER */}
+        <header className="flex items-center justify-between border-b border-slate-800 bg-slate-950/80 backdrop-blur-md p-4 sm:px-8">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-slate-300"><Menu size={24}/></button>
             <div>
               <h1 className="text-lg font-bold text-white capitalize">{activeTab.replace("-", " ")}</h1>
-              <p className="text-xs text-slate-400">{currentUser.name} | {currentUser.role}</p>
+              <p className="text-xs text-slate-400">{currentUser.name}</p>
             </div>
           </div>
           
           <div className="flex items-center gap-4 sm:gap-6">
             
+            <div className="hidden sm:flex flex-col items-end border-r border-slate-800 pr-6">
+              <p className="text-xs text-slate-300 font-bold font-mono tracking-widest">{currentTime.toLocaleTimeString()}</p>
+              <p className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 mt-0.5"><ShieldCheck size={12}/> System Active</p>
+            </div>
+
             {/* STAFF SELF-STATUS SELECTOR */}
             {currentUser.role === 'STAFF' && (
               <div className="hidden sm:flex items-center gap-2 border-r border-slate-800 pr-6">
                 <Power size={14} className="text-slate-400" />
                 <select 
-                  className="bg-slate-900 border border-slate-700 text-xs text-white rounded px-2 py-1 outline-none focus:border-yellow-500"
-                  value={staffList.find(s => s.id === currentUser.id)?.status || "Active"}
-                  onChange={(e) => handleSelfStatusChange(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 text-xs text-white rounded px-2 py-1 outline-none focus:border-yellow-500" 
+                  value={staffList.find(s => s.name === currentUser.name)?.status || "Active"} 
+                  onChange={e => handleStatusChange(staffList.find(s => s.name === currentUser.name)?.id, e.target.value)}
                 >
                   <option value="Active">Active Duty</option>
                   <option value="Inactive">Off Shift</option>
@@ -358,7 +415,7 @@ function App() {
               </div>
             )}
 
-            <button onClick={() => setCurrentUser(null)} className="p-2 text-slate-400 hover:text-red-400 transition bg-slate-800/50 hover:bg-slate-800 rounded-full border border-slate-700/50" title="Logout">
+            <button onClick={() => { setToken(null); setCurrentUser(null); }} className="p-2 text-slate-400 hover:text-red-400 transition bg-slate-800/50 hover:bg-slate-800 rounded-full border border-slate-700/50" title="Logout">
               <LogOut size={18} />
             </button>
 
@@ -373,157 +430,183 @@ function App() {
             {/* VIEW 1: DASHBOARD */}
             {/* ---------------------------------------------------- */}
             {activeTab === "dashboard" && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 shadow-lg text-center">
+              <div className="animate-fade-in grid gap-6">
+                <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center shadow-lg">
                   <h2 className="text-2xl font-bold text-white mb-2">Welcome to Zenith, {currentUser.name.split(' ')[0]}</h2>
-                  <p className="text-slate-400">Your role provides you access to specific tools and datasets.</p>
+                  <p className="text-slate-400">Authenticated as {currentUser.role}. All systems are nominal.</p>
                 </div>
+                
+                {currentUser.role === 'ADMIN' && (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-lg">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Total Base Spend</p>
+                      <p className="mt-1 text-2xl font-bold text-white">{formatCurrency(totals.base)}</p>
+                    </div>
+                    <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-5 shadow-[0_0_15px_rgba(234,179,8,0.05)]">
+                      <p className="text-xs uppercase tracking-wide text-yellow-500/90">Projected Revenue</p>
+                      <p className="mt-1 text-2xl font-bold text-yellow-500">{formatCurrency(totals.final)}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* ---------------------------------------------------- */}
-            {/* VIEW 2: PRICING (ADMIN CAN EDIT, STAFF CAN READ) */}
+            {/* VIEW 2: PRICING (ADMIN EDIT, STAFF READ) */}
             {/* ---------------------------------------------------- */}
             {activeTab === "pricing" && (
-              <div className="space-y-6 animate-slide-in">
-                <div className="rounded-xl border border-slate-800 bg-slate-900 overflow-hidden shadow-lg">
-                  <div className="p-5 border-b border-slate-800 flex justify-between items-center">
-                    <h2 className="text-lg font-bold text-white">Service Catalog & Pricing</h2>
-                    {currentUser.role === 'STAFF' && <span className="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">Read Only</span>}
+              <div className="animate-slide-in rounded-xl border border-slate-800 bg-slate-900 overflow-hidden shadow-lg">
+                <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                    <input 
+                      type="text" 
+                      placeholder="Search services..." 
+                      value={searchQuery} 
+                      onChange={e => setSearchQuery(e.target.value)} 
+                      className="bg-slate-950 border border-slate-700 rounded-lg py-2 pl-9 pr-4 text-sm text-white focus:border-yellow-500 outline-none w-64 transition"
+                    />
                   </div>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
-                      <thead className="bg-slate-950/60 text-left text-xs uppercase text-slate-400">
-                        <tr>
-                          <th className="px-5 py-4 font-medium">Service</th>
-                          <th className="px-5 py-4 font-medium">Base Cost</th>
-                          <th className="px-5 py-4 font-medium">Margin (%)</th>
-                          <th className="px-5 py-4 font-medium text-yellow-500">Final Price</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/80">
-                        {rows.map((row) => (
-                          <tr key={row.service} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="px-5 py-4 text-white font-medium">{row.service}</td>
-                            
-                            {/* EDITABLE FOR ADMIN, STATIC TEXT FOR STAFF */}
-                            {currentUser.role === 'ADMIN' ? (
-                              <>
-                                <td className="px-5 py-4">
-                                  <div className="relative w-32">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">₹</span>
-                                    <input 
-                                      type="number" 
-                                      value={row.baseCost} 
-                                      onChange={(e) => setRows(rows.map(r => r.service === row.service ? {...r, baseCost: e.target.value} : r))} 
-                                      className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 pl-7 text-white outline-none focus:border-yellow-500"
-                                    />
-                                  </div>
-                                </td>
-                                <td className="px-5 py-4">
-                                  <div className="relative w-24">
-                                    <input 
-                                      type="number" 
-                                      value={row.margin} 
-                                      onChange={(e) => setRows(rows.map(r => r.service === row.service ? {...r, margin: e.target.value} : r))} 
-                                      className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-white outline-none focus:border-yellow-500"
-                                    />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">%</span>
-                                  </div>
-                                </td>
-                              </>
-                            ) : (
-                              <>
-                                <td className="px-5 py-4 text-slate-300">{formatCurrency(row.baseCost)}</td>
-                                <td className="px-5 py-4 text-slate-300">{row.margin}%</td>
-                              </>
-                            )}
+                  {currentUser.role === 'ADMIN' ? (
+                    <button onClick={handleSavePricing} className="flex items-center gap-2 bg-yellow-500 text-slate-950 px-5 py-2 rounded-lg font-bold text-sm hover:bg-yellow-400 transition">
+                      <Save size={16}/> Save Pricing
+                    </button>
+                  ) : (
+                    <span className="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">Read Only Access</span>
+                  )}
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm text-left">
+                    <thead className="bg-slate-950/60 text-xs uppercase tracking-wider text-slate-400">
+                      <tr>
+                        <th className="px-5 py-4 font-medium">Service</th>
+                        <th className="px-5 py-4 font-medium">Base Cost</th>
+                        <th className="px-5 py-4 font-medium">Profit Margin (%)</th>
+                        <th className="px-5 py-4 font-medium text-yellow-500">Final Client Price</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {filteredPricing.map(row => (
+                        <tr key={row.service} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-5 py-4 font-medium text-white">{row.service}</td>
+                          
+                          {/* EDITABLE FOR ADMIN, STATIC TEXT FOR STAFF */}
+                          {currentUser.role === 'ADMIN' ? (
+                            <>
+                              <td className="px-5 py-4">
+                                <div className="relative w-32">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">₹</span>
+                                  <input 
+                                    type="number" 
+                                    value={row.baseCost} 
+                                    onChange={(e) => setRows(rows.map(r => r.service === row.service ? {...r, baseCost: e.target.value} : r))} 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-md py-1.5 pl-7 pr-2 text-white outline-none focus:border-yellow-500/70 transition"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-5 py-4">
+                                <div className="relative w-24">
+                                  <input 
+                                    type="number" 
+                                    value={row.margin} 
+                                    onChange={(e) => setRows(rows.map(r => r.service === row.service ? {...r, margin: e.target.value} : r))} 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-md py-1.5 pl-3 pr-7 text-white outline-none focus:border-yellow-500/70 transition"
+                                  />
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">%</span>
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="px-5 py-4 text-slate-300">{formatCurrency(row.baseCost)}</td>
+                              <td className="px-5 py-4 text-slate-300">{row.margin}%</td>
+                            </>
+                          )}
 
-                            <td className="px-5 py-4 font-bold text-emerald-400">{formatCurrency(calculateFinalServicePrice(row.baseCost, row.margin))}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                          <td className="px-5 py-4 font-bold text-emerald-400">{formatCurrency(calculateFinalServicePrice(row.baseCost, row.margin))}</td>
+                        </tr>
+                      ))}
+                      {filteredPricing.length === 0 && (
+                        <tr><td colSpan="4" className="text-center p-8 text-slate-500">No services match your search.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
 
             {/* ---------------------------------------------------- */}
-            {/* VIEW 3: STAFF (ADMIN ONLY) */}
+            {/* VIEW 3: STAFF ROSTER (ADMIN ONLY) */}
             {/* ---------------------------------------------------- */}
             {activeTab === "staff" && currentUser.role === 'ADMIN' && (
-              <div className="space-y-6 animate-slide-in">
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {staffList.map(staff => (
-                    <div key={staff.id} className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg relative group">
-                      
-                      {/* ADMIN DELETE BUTTON */}
-                      <button 
-                        onClick={() => handleRemoveStaff(staff.id, staff.name)} 
-                        className="absolute top-4 right-4 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <Trash2 size={16}/>
-                      </button>
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-yellow-500 font-bold">
-                          {staff.name.charAt(0)}
-                        </div>
-                        <div className="max-w-[70%]">
-                          <p className="text-white font-bold truncate">{staff.name}</p>
-                          <p className="text-xs text-yellow-500 truncate">{staff.role}</p>
-                        </div>
+              <div className="animate-slide-in grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {staffList.map(staff => (
+                  <div key={staff.id} className="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-lg relative group overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5"><Briefcase size={64}/></div>
+                    
+                    {/* ADMIN DELETE BUTTON */}
+                    <button 
+                      onClick={() => handleRemoveStaff(staff.id, staff.name)} 
+                      className="absolute top-4 right-4 text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition z-10"
+                    >
+                      <Trash2 size={16}/>
+                    </button>
+                    
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-yellow-500 font-bold">
+                        {staff.name.charAt(0)}
                       </div>
-                      <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center">
-                        <p className="text-xs text-slate-400 truncate pr-2 flex items-center gap-1">
-                          <Building size={10} /> {staff.site}
-                        </p>
-                        <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded whitespace-nowrap ${staff.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : staff.status === 'On Holiday' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
-                          {staff.status}
-                        </span>
+                      <div className="max-w-[70%]">
+                        <p className="text-white font-bold truncate">{staff.name}</p>
+                        <p className="text-xs text-yellow-500 truncate">{staff.role}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="mt-4 pt-4 border-t border-slate-800/80 flex justify-between items-center relative z-10">
+                      <p className="text-xs text-slate-400 truncate pr-2 flex items-center gap-1.5">
+                        <Building size={12} /> {staff.site}
+                      </p>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded whitespace-nowrap ${staff.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : staff.status === 'On Holiday' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
+                        {staff.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* ---------------------------------------------------- */}
-            {/* VIEW 4: CLIENTS/INVOICES (ALL ROLES) */}
+            {/* VIEW 4: CLIENT PORTFOLIO (ALL ROLES) */}
             {/* ---------------------------------------------------- */}
             {activeTab === "invoices" && (
-              <div className="space-y-6 animate-slide-in">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm">
-                      <thead className="bg-slate-950/80 text-xs uppercase text-slate-400 border-b border-slate-800">
-                        <tr>
-                          <th className="px-6 py-4 font-medium">Client Name</th>
-                          <th className="px-6 py-4 font-medium">Monthly Value</th>
-                          <th className="px-6 py-4 font-medium">Contract End</th>
+              <div className="animate-slide-in bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                      <tr>
+                        <th className="px-6 py-4 font-medium">Client Name</th>
+                        <th className="px-6 py-4 font-medium">Monthly Value</th>
+                        <th className="px-6 py-4 font-medium">Contract End</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/80">
+                      {clientList
+                        // Security filter: Clients only see themselves
+                        .filter(c => currentUser.role !== 'CLIENT' || c.name === currentUser.name)
+                        .map(c => (
+                        <tr key={c.id} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-6 py-4 text-white font-bold"><Building size={14} className="inline mr-2 text-slate-500"/>{c.name}</td>
+                          <td className="px-6 py-4 font-bold text-yellow-500">{formatCurrency(c.totalMonthly)}</td>
+                          <td className="px-6 py-4 text-slate-300 font-medium">{new Date(c.contractEnd).toLocaleDateString()}</td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/80">
-                        {clientList
-                          // If role is CLIENT, ONLY show their specific row!
-                          .filter(c => currentUser.role !== 'CLIENT' || c.name === currentUser.name)
-                          .map(c => (
-                          <tr key={c.id} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="px-6 py-4 text-white font-bold"><Building size={14} className="inline mr-2 text-slate-500"/>{c.name}</td>
-                            <td className="px-6 py-4 font-bold text-yellow-500">{formatCurrency(c.totalMonthly)}</td>
-                            <td className="px-6 py-4 text-slate-300">{c.contractEnd}</td>
-                          </tr>
-                        ))}
-                        {clientList.length === 0 && (
-                          <tr>
-                            <td colSpan="3" className="text-center p-8 text-slate-500">No active clients.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                      {clientList.length === 0 && (
+                        <tr>
+                          <td colSpan="3" className="text-center p-8 text-slate-500">No active clients found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
@@ -534,5 +617,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
