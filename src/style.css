@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+  background: #f8fafc;
+  color: #1f2937;
+}
+
+.zenith-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  border: 1px solid rgba(200, 164, 77, 0.35);
+  background-color: rgba(8, 27, 58, 0.45);
+  background-image: url("./images/zenith-logo.svg");
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 8px 20px rgba(8, 27, 58, 0.35);
+}
+
+.visual-hero {
+  position: relative;
+  background: radial-gradient(circle at 20% 20%, rgba(200, 164, 77, 0.18), transparent 45%),
+    linear-gradient(130deg, #081b3a 0%, #0f172a 55%, #1e293b 100%);
+}
+
+.hero-slider {
+  position: relative;
+  background: #081b3a;
+}
+
+.hero-slider-track {
+  display: flex;
+  width: 100%;
+  transition: transform 700ms ease;
+}
+
+.hero-slide {
+  min-width: 100%;
+  min-height: 260px;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(8, 27, 58, 0.86) 10%, rgba(8, 27, 58, 0.35) 80%);
+}
+
+.hero-slide-content {
+  position: relative;
+  z-index: 1;
+  padding: 28px;
+}
+
+.hero-slider-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  border: 0;
+  cursor: pointer;
+}
+
+.hero-dot.active {
+  width: 24px;
+  border-radius: 999px;
+  background: #c8a44d;
+}
+
+.visual-glow {
+  position: absolute;
+  inset: -20%;
+  background: conic-gradient(
+    from 120deg,
+    rgba(200, 164, 77, 0.25),
+    rgba(34, 211, 238, 0.12),
+    rgba(59, 130, 246, 0.2),
+    rgba(200, 164, 77, 0.25)
+  );
+  filter: blur(50px);
+  animation: zenithSpin 20s linear infinite;
+}
+
+.visual-card {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+  animation: zenithFloat 5s ease-in-out infinite;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  will-change: transform;
+}
+
+.visual-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(8, 27, 58, 0.78), rgba(8, 27, 58, 0.15));
+}
+
+.visual-card > p {
+  position: relative;
+  z-index: 1;
+}
+
+.visual-card:hover {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes zenithFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes zenithSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual-glow,
+  .visual-card,
+  .hero-slider-track {
+    animation: none !important;
+    transition: none !important;
+  }
+}
