@@ -5,19 +5,19 @@ import {
   Search, FileX, CheckCircle2, XCircle, Clock, Menu, Bell, Briefcase, Building, FileText, ArrowUpDown
 } from "lucide-react";
 
-// --- MOCK DATABASES & MEDIA ---
+// --- MOCK DATABASES & MEDIA (IMAGES FIXED TO LIVE URLS) ---
 const dashboardMedia = {
   bannerSlides: [
-    { title: "Security Operations", subtitle: "High-trust guarding and surveillance services", image: "/images/slide-security.svg" },
-    { title: "Solar Solutions", subtitle: "Sustainable energy infrastructure for enterprises", image: "/images/slide-solar.svg" },
-    { title: "Housekeeping Excellence", subtitle: "Premium facility cleanliness and compliance", image: "/images/slide-housekeeping.svg" },
-    { title: "Skilled Manpower", subtitle: "Reliable workforce deployment on demand", image: "/images/slide-manpower.svg" },
-    { title: "Electrical & Audit", subtitle: "Safety-first electrical support and governance audits", image: "/images/slide-electrical-audit.svg" },
+    { title: "Security Operations", subtitle: "High-trust guarding and surveillance services", image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=1000" },
+    { title: "Solar Solutions", subtitle: "Sustainable energy infrastructure for enterprises", image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=1000" },
+    { title: "Housekeeping Excellence", subtitle: "Premium facility cleanliness and compliance", image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=1000" },
+    { title: "Skilled Manpower", subtitle: "Reliable workforce deployment on demand", image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=1000" },
+    { title: "Electrical & Audit", subtitle: "Safety-first electrical support and governance audits", image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&q=80&w=1000" },
   ],
   visualCards: [
-    { title: "Solar Infrastructure", subtitle: "Clean energy operations", image: "/images/slide-solar.svg" },
-    { title: "Integrated Security", subtitle: "24/7 monitored safety", image: "/images/slide-security.svg" },
-    { title: "Workforce Excellence", subtitle: "Skilled teams on demand", image: "/images/slide-manpower.svg" },
+    { title: "Solar Infrastructure", subtitle: "Clean energy operations", image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=600" },
+    { title: "Integrated Security", subtitle: "24/7 monitored safety", image: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&q=80&w=600" },
+    { title: "Workforce Excellence", subtitle: "Skilled teams on demand", image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=600" },
   ],
 };
 
@@ -141,7 +141,6 @@ function VisualCards({ cards, parallaxOffset, onCardMouseMove, onCardMouseLeave 
 }
 
 function PricingTable({ rows, onUpdateRow, calculateFinalServicePrice, formatCurrency, totals, searchQuery, setSearchQuery, lastUpdated }) {
-  // QoL: Table Sorting
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const handleSort = (key) => {
