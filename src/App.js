@@ -34,7 +34,7 @@ const navItems = [
   { label: "Service Margins", icon: WalletCards },
 ];
 
-const API_BASE_URL = "http://localhost:8080"; // Changed to local backend
+const API_BASE_URL = "https://zenith-backend-ozvl.onrender.com/"; // Changed to local backend
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-IN", {
