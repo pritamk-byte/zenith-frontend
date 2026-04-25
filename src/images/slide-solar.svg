@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1">
+      <stop offset="0%" stop-color="#091f42"/>
+      <stop offset="100%" stop-color="#1f4d8a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="700" fill="url(#bg)"/>
+  <circle cx="1270" cy="140" r="75" fill="#ffd84d"/>
+  <g transform="translate(210 230)">
+    <rect width="1180" height="320" rx="24" fill="#0b2a57"/>
+    <g fill="#2c7fc8">
+      <rect x="90" y="90" width="280" height="160" rx="10"/>
+      <rect x="420" y="90" width="280" height="160" rx="10"/>
+      <rect x="750" y="90" width="280" height="160" rx="10"/>
+    </g>
+    <g stroke="#81c9ff" stroke-width="4">
+      <line x1="90" y1="140" x2="370" y2="140"/>
+      <line x1="90" y1="190" x2="370" y2="190"/>
+      <line x1="420" y1="140" x2="700" y2="140"/>
+      <line x1="420" y1="190" x2="700" y2="190"/>
+      <line x1="750" y1="140" x2="1030" y2="140"/>
+      <line x1="750" y1="190" x2="1030" y2="190"/>
+    </g>
+  </g>
+  <text x="120" y="640" fill="#ffffff" font-size="64" font-family="Segoe UI, Arial" font-weight="700">Solar Solutions</text>
+</svg>

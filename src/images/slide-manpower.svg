@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1">
+      <stop offset="0%" stop-color="#081b3a"/>
+      <stop offset="100%" stop-color="#11436f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="700" fill="url(#bg)"/>
+  <rect x="170" y="170" width="1260" height="380" rx="26" fill="#0a2a54"/>
+  <g transform="translate(370 230)">
+    <circle cx="120" cy="80" r="45" fill="#c8a44d"/>
+    <circle cx="360" cy="80" r="45" fill="#c8a44d"/>
+    <circle cx="600" cy="80" r="45" fill="#c8a44d"/>
+    <rect x="70" y="150" width="100" height="180" rx="20" fill="#2f86ca"/>
+    <rect x="310" y="150" width="100" height="180" rx="20" fill="#2f86ca"/>
+    <rect x="550" y="150" width="100" height="180" rx="20" fill="#2f86ca"/>
+  </g>
+  <text x="120" y="640" fill="#ffffff" font-size="64" font-family="Segoe UI, Arial" font-weight="700">Skilled Manpower</text>
+</svg>

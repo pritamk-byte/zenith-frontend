@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1">
+      <stop offset="0%" stop-color="#071a36"/>
+      <stop offset="100%" stop-color="#104775"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="700" fill="url(#bg)"/>
+  <rect x="160" y="170" width="1280" height="380" rx="26" fill="#0b2a57"/>
+  <g transform="translate(330 220)">
+    <circle cx="120" cy="120" r="90" fill="#1d63a0"/>
+    <polygon points="120,45 155,130 120,130 150,205 85,125 118,125" fill="#f2d25f"/>
+    <rect x="330" y="40" width="460" height="280" rx="18" fill="#2d86c7"/>
+    <rect x="375" y="85" width="370" height="20" fill="#9fd6ff"/>
+    <rect x="375" y="135" width="300" height="20" fill="#9fd6ff"/>
+    <rect x="375" y="185" width="330" height="20" fill="#9fd6ff"/>
+  </g>
+  <text x="120" y="640" fill="#ffffff" font-size="60" font-family="Segoe UI, Arial" font-weight="700">Electrical &amp; Audit</text>
+</svg>

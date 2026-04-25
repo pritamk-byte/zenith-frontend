@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1">
+      <stop offset="0%" stop-color="#0b254b"/>
+      <stop offset="100%" stop-color="#164b78"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="700" fill="url(#bg)"/>
+  <rect x="170" y="170" width="1260" height="380" rx="26" fill="#0a2c5d"/>
+  <g transform="translate(330 230)">
+    <circle cx="170" cy="170" r="120" fill="#1d63a0"/>
+    <path d="M80 170h180M170 80v180" stroke="#c8a44d" stroke-width="22" stroke-linecap="round"/>
+    <rect x="420" y="70" width="420" height="200" rx="16" fill="#1f7cc2"/>
+    <line x1="470" y1="130" x2="790" y2="130" stroke="#9ed7ff" stroke-width="10"/>
+    <line x1="470" y1="180" x2="790" y2="180" stroke="#9ed7ff" stroke-width="10"/>
+  </g>
+  <text x="120" y="640" fill="#ffffff" font-size="62" font-family="Segoe UI, Arial" font-weight="700">Housekeeping Excellence</text>
+</svg>

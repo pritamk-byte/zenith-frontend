@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1">
+      <stop offset="0%" stop-color="#081b3a"/>
+      <stop offset="100%" stop-color="#123a74"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="700" fill="url(#bg)"/>
+  <circle cx="260" cy="120" r="70" fill="#c8a44d" opacity="0.45"/>
+  <rect x="120" y="210" width="1360" height="360" rx="26" fill="#0b2a57" opacity="0.85"/>
+  <path d="M800 210 1080 290v130c0 130-94 225-280 280-186-55-280-150-280-280V290z" fill="#c8a44d"/>
+  <path d="M800 250 1040 317v99c0 108-82 187-240 236-158-49-240-128-240-236v-99z" fill="#0c2f63"/>
+  <path d="m705 440 70 70 128-150" fill="none" stroke="#f8e7a3" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="120" y="640" fill="#ffffff" font-size="64" font-family="Segoe UI, Arial" font-weight="700">Security Operations</text>
+</svg>
