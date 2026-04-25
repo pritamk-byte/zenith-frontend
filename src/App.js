@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
-import jsPDF from "jspdf";
+// FIX: Corrected jsPDF import to prevent crashes when clicking "Generate PDF" or "PDF"
+import { jsPDF } from "jspdf";
 import { 
   BarChart3, Download, LayoutDashboard, Save, ShieldCheck, Users, WalletCards, 
   Search, FileX, CheckCircle2, XCircle, Clock, Menu, Bell, Briefcase, Building, FileText, ArrowUpDown, Plus, UserPlus, FileSignature
 } from "lucide-react";
 
 // ==========================================
-// 1. IMAGE IMPORTS (Fix for moving to 'src')
+// 1. IMAGE IMPORTS
 // ==========================================
-// Ensure these filenames match exactly what is in your src/images folder!
 import slideSecurity from "./images/slide-security.svg";
 import slideSolar from "./images/slide-solar.svg";
 import slideHousekeeping from "./images/slide-housekeeping.svg";
@@ -164,6 +164,12 @@ function PricingTable({ rows, onUpdateRow, calculateFinalServicePrice, formatCur
       sortableRows.sort((a, b) => {
         let aVal = sortConfig.key === 'final' ? calculateFinalServicePrice(a.baseCost, a.margin) : a[sortConfig.key];
         let bVal = sortConfig.key === 'final' ? calculateFinalServicePrice(b.baseCost, b.margin) : b[sortConfig.key];
+        
+        // FIX: Ensure numeric sorting for inputs instead of string comparison
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+            return sortConfig.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
@@ -280,23 +286,22 @@ function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isFabOpen, setIsFabOpen] = useState(false); // NEW: Quick Action FAB state
+  const [isFabOpen, setIsFabOpen] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
   
   // Data State
   const [rows, setRows] = useState(initialPricing);
-  const [staffList, setStaffList] = useState(initialStaffDb); // NEW: Modifiable Staff State
+  const [staffList, setStaffList] = useState(initialStaffDb);
   const [searchQuery, setSearchQuery] = useState("");
   const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleString());
   const [clientService, setClientService] = useState(initialPricing[0].service);
-  const [currentTime, setCurrentTime] = useState(new Date()); // NEW: Live Clock
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Animation & Visual State
   const [activeSlide, setActiveSlide] = useState(0);
   const [parallaxOffset, setParallaxOffset] = useState(dashboardMedia.visualCards.map(() => ({ x: 0, y: 0 })));
   const [animatedTotals, setAnimatedTotals] = useState({ totalBase: 0, totalFinal: 0, avgMargin: 0 });
 
-  // NEW: Live Header Clock Effect
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -311,7 +316,6 @@ function App() {
     setRows((current) => current.map((row) => row.service === serviceName ? { ...row, [field]: value === "" ? "" : Number(value) } : row));
   };
 
-  // NEW: Interactive Staff Status Toggle
   const toggleStaffStatus = (id) => {
     setStaffList(curr => curr.map(staff => {
       if (staff.id === id) {
@@ -329,13 +333,11 @@ function App() {
     return { totalBase, totalFinal };
   }, [rows]);
 
-  // Tab 1 Specific Calcs
   const revenueTrend = useMemo(() => rows.map((row) => ({ service: row.service, revenue: calculateFinalServicePrice(row.baseCost, row.margin) })), [rows]);
   const marginTrend = useMemo(() => rows.map((row) => ({ service: row.service, margin: Number(row.margin) || 0 })), [rows]);
   const maxRevenue = useMemo(() => Math.max(...revenueTrend.map((item) => item.revenue), 1), [revenueTrend]);
   const maxMargin = useMemo(() => Math.max(...marginTrend.map((item) => item.margin), 1), [marginTrend]);
 
-  // Tab 1 Effects
   useEffect(() => {
     if (activeTab !== "dashboard") return;
     const timer = window.setInterval(() => setActiveSlide((c) => (c + 1) % dashboardMedia.bannerSlides.length), 3500);
@@ -364,15 +366,28 @@ function App() {
   const handleSave = async () => {
     showToast("Saving to database...", "info");
     try {
+      // FIX: Added Authorization header. 
+      // Replace localStorage.getItem with however you plan to store your JWT token.
+      const token = localStorage.getItem("zenith_token") || "mock_token"; 
+      
       const response = await fetch(`${API_BASE_URL}/api/v1/pricing`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT", 
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` 
+        },
         body: JSON.stringify({ rows: rows.map((row) => ({ service: row.service, baseCost: Number(row.baseCost) || 0, margin: Number(row.margin) || 0 })) }),
       });
-      if (!response.ok) throw new Error(`Save failed`);
+      
+      if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || `Save failed`);
+      }
+      
       showToast("✅ Pricing saved successfully!", "success");
       setLastUpdated(new Date().toLocaleString());
-    } catch {
-      showToast("❌ Could not reach API. Saved locally.", "error");
+    } catch (error) {
+      showToast(`❌ ${error.message || "Could not reach API. Saved locally."}`, "error");
       setLastUpdated(new Date().toLocaleString());
     }
   };
@@ -521,7 +536,6 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4 sm:gap-6">
-            {/* NEW: LIVE CLOCK & STATUS */}
             <div className="hidden sm:flex flex-col items-end">
               <p className="text-xs text-slate-300 font-bold font-mono tracking-widest">{currentTime.toLocaleTimeString()}</p>
               <p className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 mt-0.5"><ShieldCheck size={12}/> System Active</p>
